@@ -1,6 +1,6 @@
 # Statistical-Machine-Learning-Project
 
-Team Members: Anne Hu, Jiaming Lin, Pravin Radhakrishnan, Jayden Abdallah, Laura Baker, Shujie Chen, Rui Han
+### Team Members: Anne Hu, Jiaming Lin, Pravin Radhakrishnan, Jayden Abdallah, Laura Baker, Shujie Chen, Rui Han
 
 This is an inter-discipline project (statistics and nutrition), which aimed to investigate the complex relationship between micronutrients and dietary fat intake with obesity and lipid metabolism. 
 
