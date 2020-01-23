@@ -25,6 +25,8 @@ Here we applied multiple different models. This includes logistic regression mod
 
 ### 3.1 Logistic Regression Models with Penalizations
 
+Here I selected the Logistic Regression Model with Lasso Penalization as the example.
+
 <img width="788" alt="logistic" src="https://user-images.githubusercontent.com/46860162/72969220-25f2e000-3e19-11ea-88d1-cabde3a7a412.png">
 
 ### 3.2 Classification Tree Model
