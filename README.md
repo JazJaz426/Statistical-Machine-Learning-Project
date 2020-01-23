@@ -58,4 +58,4 @@ See attached HTML file for more details.
 
 <img width="1024" alt="Screen Shot 2020-01-23 at 8 07 40 pm" src="https://user-images.githubusercontent.com/46860162/72970564-0b6e3600-3e1c-11ea-9a9e-a1e1c1b25e71.png">
 
-Team members: Anne Hu, Jiaming Lin, Pravin Radhakrishnan, Jayden Abdallah, Laura Baker, Shujie Chen, Rui Han. Probably the best team members ever!
+### Team members: Anne Hu, Jiaming Lin, Pravin Radhakrishnan, Jayden Abdallah, Laura Baker, Shujie Chen, Rui Han. Probably the best team members ever!
