@@ -1,0 +1,1826 @@
+---
+title: "Dynamic Duo: A statistic and nutrition collaboration on the interplay between micronutrients, lipid tolerance and obesity (Team Player Edition)"
+subtitle: Journal of Psychological safety and Bayesian vs Frequentist Blogs
+author: "Anne Hu, Jiaming Lin, Pravin Radhakrishnan, Jayden Abdallah, Laura Baker, Shujie Chen, Rui Han"
+output: 
+  rmdformats::readthedown:
+    self_contained: true
+    thumbnails: false
+    lightbox: true
+    gallery: false
+    highlight: tango
+    code_folding: hide
+    toc_depth: 4
+    use_bookdown: true
+---
+```{r setup, echo=FALSE, message = FALSE, warning = FALSE}
+require(rmdformats)
+require(tidyr)
+require(dplyr)
+require(tibble)
+require(ggplot2)
+require(ggcorrplot)
+require(glmnet)
+require(kableExtra)
+require(rpart)
+require(rpart.plot)
+require(qgraph)
+require(MASS::lda)
+require(MASS::qda)
+require(qgraph)
+require(circlize)
+require(caret)
+require(jtools)
+require(jpeg)
+
+
+set.seed(3888)
+knitr::opts_chunk$set(fig.width=7, fig.height=7)
+```
+# Executive Summary 
+This study aimed to investigate the complex relationship between micronutrients and dietary fat intake with obesity and lipid metabolism. Secondly, the study attempts to fill in the gaps in the current literature regarding such relationships in the general Australian adult population. Previous studies have mostly explored micronutrient dilution in comparison with excess total energy and excess sugar intake (Mok et al., 2018; Aytekin et al., 2019). However rarely have explored micronutrient dilution with dietary fat intake. To complement the studies investigating micronutrient deficiencies in obese individuals and their role in lipid metabolic processes (Aytekin et al., 2019; Kaider-Person et al., 2008), this study bridges the two by investigating the relationship between micronutrients, obesity and lipid tolerance.
+
+
+## Key findings 
+Our classification accuracies were generally between 70-90%. The best performing model for exploring obesity with BMI was the LDA with a prediction accuracy of 95.83% and the worst performing was CART at 76.13%. For exploring lipid metabolism by predicting the percentage of energy from total fat ($\small{\% E_{Total\, Fat}}$) , the best performing model was the LASSO penalised logistic regression which has a prediction accuracy of 97.99% and and the worst performing with CART at 62.05%. 
+
+
+Consistently with literature, It appeared that there is a relatively significant positive interaction effect between obesity and higher fat diets ( $\small{ >30\%\, E_{Total\,Fat}}$) ($\small{ p=0.065}$). Both average ($\small{ p=2.65 \times 10^{-8}}$) and high ($\small{ p=1.02 \times 10^{-14}}$) micronutrient score have significant positive interaction effects with higher fat diets.  However contrary to domain belief, there was not a significant 3-way interaction effect between obesity, higher micronutrient score and high-fat diets (See [Log-Linear Model](#llm)).  It appears that the odds of obesity decrease with greater micronutrients and ‘good fats’ and higher ‘good cholesterol’ levels, namely monounsaturated fats and HDL cholesterol respectively. The odds decrease with greater triglyceride levels and increases in the different dietary fats (See [Logistic Regression Models](#logit)). There also appears to generally be a positive correlation between increases in micronutrients and impaired lipid tolerance.  HDL cholesterol are negatively correlated with LDL cholesterol, as were saturated and polyunsaturated fats. BMI was generally positively correlated with total and saturated fats. These individuals with high BMI tend to have dyslipidemia who had abnormal levels of lipids and were on lipid medication (See [Gaussian Graphical Model](#ggm)). In decreasing order, the most important micronutrients for obesity are vitamin E, magnesium, vitamin C, potassium, phosphorus, selenium, vitamin B6, vitamin B12, retinol (vitamin A), and zinc.(See [CART](#cart)). Although the findings listed were predominantly consistent with previous literature, there were disprecanies between models and domain belief.
+
+## Shortcomings 
+Firstly, physiological processes tend to be interdependent, therefore there may be confounding variables between multicollinear predictors. However, in order to simplify certain statistical models and satisfy their model assumptions, it is assumed that macronutrients and food groups such as protein and red meats, are relationally independent of lipids and micronutrients. Biologically, more holistic dietary conclusions should be more hesitantly drawn as the study does not consider influences from the excluded food items. Additionally, despite conservative efforts when subsetting and cleaning the data, the sample size had to be drastically reduced to fit certain models. Consequently, the sample population was generally very unbalanced. 
+
+## Clinical relevance
+Obesity significantly contributes to the development of cardiovascular disease (CVD), a major cause of mortality in Australia, by altering and impairing lipid tolerance (Thomas et al., 2017). Obesity has been consistently related to abnormalities in lipid tolerance (Thomas et al., 2017). Examining relationships which have been rarely explored in previous studies further aids and contributes to understanding the relationship between obesity, lipid tolerance and micronutrients, especially in an Australia-specific context.
+
+# Background
+
+Characterised as a Body Mass Index (BMI) over 30 kg/m2, Obesity is associated with excess fat deposition and adipocyte hypertrophy where adipocytes expand thousandfold to store energy (Racette et al. 2003). While the disease arises from a cumulation of genetic, behavioural, environmental, physiological, social and cultural factors, the role of nutritional biochemistry is a major focus in studies of obesity etiology (Racette et al. 2003). The increasing accessibility of highly refined, energy-dense foods at the expense of nutrient rich foods contributes substantially to the persistence of obesity  (Raynor and Epstein, 2001).
+
+Impaired lipid tolerance refers to a reduction in the efficiency in which an individual metabolises and utilises lipids in the body, and is less commonly investigated than glucose metabolism (Morentin Gutierrez et al., 2019; Walker and Crook, 2013).  Abnormalities in lipid metabolism usually occur when energy intake exceeds adipose tissue storage capacity, an event common in obese individuals (Klop et al., 2013). Hypertriglyceridaemia and hypercholesterolaemia are both forms of dyslipidemia that arise from aberrant lipid metabolism, resulting in clinical representations of increased LDL cholesterol, increased serum triglycerides and decreased HDL cholesterol (Febrinati et al., 2012). Altered lipid tolerance has also been shown to modulate glucose delivery and play a direct role in metabolic response to diet (Hofmann et al. 2007). Oral lipid tolerance testing indicates interactions between commonly consumed pharmacological substances and ingested lipids which impact upon insulin resistance (Beaudoin, Robinson and Graham, 2011). Obese individuals with fasting triglycerides in the normal range were recorded to have an abnormal postprandial lipaemia response, indicating alterations in endogenous lipoproteins due to insulin resistance (Guerci et al., 2000). The altered metabolism of polyunsaturated fatty acids was observed in obese individuals, with smaller improvements in atherogenic concentrations in obese than in normal weight individuals (Sundfør et al., 2019). Triglyceride levels were found to increase with increasing BMI, however there were no significant correlation between HDL and LDL cholesterol and BMI (Febrianti et al., 2012). However, improving HDL cholesterol levels were strongly correlated with a reduction in triglycerides except in underweight women (Febrianti et al., 2012). Obesity is associated with altered duodenal expression of fatty acid receptors suggesting altered capacity for sensing, absorption and metabolism of dietary lipids. (Cvijanovic et al., 2017)  These findings indicate an altered lipid tolerance in obese individuals and the requirement for adjustment of dietary recommendation according to body mass index.
+ 
+Micronutrient status is associated with obesity and impaired lipid tolerance (Aytekin et al., 2019). 
+Emerging evidence highlights the presence of ‘micronutrient dilution’ in obese individuals, in which there is an excess consumption of energy-dense, nutrient-poor foods and concurrent insufficient intake in micronutrient-dense foods (Mok et al., 2018; Aytekin et al., 2019). The presence of multiple micronutrient deficiencies can result in a significantly reduced capacity for the body to efficiently utilize calories intake  (Kaider et al., 2007; Aytekin et al., 2019). This could lead to a build-up of toxic by-products inducing further weight gain, mental health issues and disease (Kaider-Person et al., 2008). As an example, deficiencies in vitamin B12 and folate lead to hyperhomocysteinemia, a risk factor for atherosclerosis (Kaidar-Person et al., 2008; da Silva et al., 2013). Micronutrients demonstrated to be consistently more deficient in obese individuals compared to lean persons include vitamin B1, vitamin B12, folate, vitamin C, zinc, magnesium, iron, selenium and calcium (Aytekin et al., 2019, Kaidar-Person et al., 2008a; Kaider-Person et al., 2008b; Shay et al., 2012). Vitamin D, A and E and phosphorus, potassium, chromium, sodium have also been implicated in BMI but results thus far are inconclusive (Shay et al., 2012; Kaidar-Person et al., 2008b). Many of these micronutrients are cofactors in lipid metabolism, leptin secretion, free fatty-acid and glucose uptake, and protection against LDL oxidation (Kaider-Person et al., 2008a; Kaider-Person et al., 2008b). A wide population study found that low calcium intake was negatively associated with high coronary heart disease risk (including high LDL cholesterol and total cholesterol) (Jacumain et al., 2003), however no further studies have been done examining the link between micronutrient intake and lipid tolerance. This literature suggests that micronutrients play a role in obesity and lipid tolerance, but further research is required. 
+
+Dietary fat consumption is generally hypothesised to be related to obesity and impaired lipid tolerance outcomes, especially given that total fat intake and saturated fatty acids (SFAs) induce pro-inflammatory responses (Klop et al., 2013). However, evidence for the causal relationships between fat and obesity or lipid tolerance is thus far inconsistent (National Heart Foundation, 2003; Tande et al., 2009). Halade, Jin and Lindsey (2012) suggest that the type of fat, rather than the amount of fat consumed, is the key to understanding the dietary effects of fat on the body. It has also been suggested that energy density of the diet has a more direct effect on obesity than any one nutrient, and as fat is a major contributor to energy density, a high-fat diet may therefore promote weight gain (National Heart Foundation, 2003). However, under-reporting and confounding variables including physical activity have generated some inconsistencies in cross-sectional studies analysing BMI, lipid tolerance and dietary fat in Australia (National Heart Foundation, 2003).  Significantly higher consumption of total fat, mono-unsaturated fatty acids (MUFAs), saturated fatty acids (SFAs), trans fatty acids (TFAs) and dietary cholesterol were found in US patients with high BMI (Shay et al., 2017). In a study using the Australian Health Survey 2011-13 data, Thomas et al. (2017) found no difference in consumption of SFAs, TFAs, PUFAs, ALA and total fat between adults with CVD, at risk of CVD or with no CVD - markers of which include impaired lipid metabolism. Therefore, there is a need to further explore how total and types of dietary fat contribute to obesity and impaired lipid metabolism. 
+
+# Statistical questions {#hypothesis}
+Given our multi-pronged approach to the dataset, the statistical question consists of a five-part question: 
+
+1. Are different lipids intakes, lipid tolerance measurements and micronutrients intake good predictors of obesity in the general Australian population?
+2. How do micronutrients, different lipid intake (i.e. `MUFAT`, `PUFAT`, `SATFAT`, `TRANFAT`) and lipid tolerance classify total energy derived from fats (`FATPER`) in the general Australian population? 
+3. Is there a significant relationship between lipids intake, micronutrient intake and lipid tolerance measurements with obesity in the general Australian population? (Refer to [Logistic Regression Section](#logit)).
+    +  Null: no relationship between lipid, micronutrient and lipid tolerance variables are present in those with a BMI >30 kg/m2
+    +  Alternative: significant relationships exist between general micronutrient intake, different lipids (including saturated fat, polyunsaturated fat and monounsaturated fat) and lipid tolerance biomarkers (including HDL cholesterol, LDL cholesterol, Triglycerides, total cholesterol) in those with a BMI > 30 kg/m2
+4. Is there a significant relationship between different lipids (i.e. `MUFAT`, `PUFAT`, `SATFAT`, `TRANFAT`), micronutrient intake and lipid tolerance measurements with the individual’s total energy derived from fat (`FATPER`) in the general Australian population? (Refer to [Logistic Regression Section](#logit)).
+    +  Null: no significant relationships are present.
+    +  Alternative: significant relationships exist between the variables. 
+5. Are there significant interaction effects between micronutrient intake, total energy derived from fat and BMI in the general Australian population? (Refer to [Log-Linear Model section](#llm)).
+    +  Null: There is no significant interaction effect.
+    +  Alternative: There is a significant interaction effect.
+    
+    
+# Data
+
+Data from the “Australian Health Survey, National Health Survey 2011-2012” and “National Nutrition and Physical Activity Survey 2011-2012 Basic 3rd. Edition” which well-regarded and arguably one of the largest and most comprehensive studies on the health of Australians. The survey combines four different survey results, the National Health Survey (NHS), National Aboriginal and Torres Strait Islander Health Survey,National Nutrition and Physical Activity Survey (NNPAS) and National Health Measures Survey (NHMS). 
+
+
+```{r import, eval = FALSE}
+
+# Import .csv files.
+
+# Biomedical data (height, weight, SES, etc)
+biomedical <- read.csv("./data/AHS11biomedical.csv")
+
+# Food data is per food item per person.
+food <- read.csv("./data/AHS11food.csv")
+
+# Nutrient data is a summary of food data, per person per day
+nutrient <- read.csv("./data/AHS11nutrient.csv")
+
+```
+
+
+
+## Subsetting 
+For the sake of simplifying the models, we assume that macronutrients such as protein and carbohydrates, and food group items such as red meat, fruits and vegetables, do not affect the relationship between lipids and micronutrients and are thus excluded from the subsetted data. Therefore, after engaging domain knowledge, the final dataset that was analysed consisted of variables relevant to the individual’s lipid intake, their lipid tolerance, their micronutrient intake, other biomedical indicators of interest, as well as any control variables such as an individual’s personal attributes. 
+
+```{r variable_lists, eval = FALSE}
+
+#------------------------------------------------------------------------------
+#
+#                              Lists of variables used
+#
+#------------------------------------------------------------------------------
+
+# This .rmd subsets the data from the AHS into relevant dataframes.
+# Change the contents of a list here and run the entire .rmd at once
+# Shouldn't need to tinker with anything past this chunk
+
+
+# Micronutrients
+# Note omission of T1 and T2 suffixes
+# Since these values are two measurements over two days (T1, T2)
+#    keep this list apart from the others
+# df: micronutrients
+micronutrients_list_small = c("IODINE",
+                              "PHOS",
+                              "POTAS",
+                              "SODIUM",
+                              "CALC",
+                              "IRON",
+                              "NIACIN", #NIACIN & B3
+                              "FOLEQ", #Folates
+                              "RETEQ", #PROVA & PREVA
+                              "B1",
+                              "B2",
+                              "B6",
+                              "B12",
+                              "VITC",
+                              "VITE",
+                              "MAG",
+                              "SEL",
+                              "ZINC")
+# Lipids
+# Note omission of T1 and T2 suffixes (1 and 2 for percentages)
+# Since these values are two measurements over two days (T1, T2, PER1, PER2)
+#    keep this list apart from the others
+# df: lipids
+lipids_list_small = c("MUFAT",
+                      "SATFAT",
+                      "PUFAT",
+                      "LA",
+                      "ALA",
+                      "TRANS", 
+                      "LCN3")
+lipids_percentages_list_small = c("FATPER",
+                                  "LAPER",
+                                  "ALAPER",
+                                  "SATPER",
+                                  "ALCPER",
+                                  "TRANPER",
+                                  "MONOPER",
+                                  "POLYPER")
+# Body mass
+# df: body_mass
+body_mass_list = c("BMI",
+                  "WaistCircum")
+
+# Lipid Tolerance
+# df: lipid_tolerance
+lipid_tolerance_list = c("TotalCholesterolRanged",
+                         "DyslipidaemiaStat",
+                         "FastTriglycerideRange",
+                         "HDLCholesterolRange",
+                         "FastLDLCholersterolRange")
+# Personal
+# df: personal
+personal_list = c("Age",
+                  "Sex",
+                  "CountryBirth",
+                  "SESIndex",
+                  "SocialMarital",
+                  "HouseholdIncome",
+                  "Dieting",
+                  "FeLifeStage")
+
+# Activity
+# df: activity
+activity_list = c("TotalMinPA", 
+                  "ModeratePA", 
+                  "VigorousPA",
+                  "TotalMinSitting/Lying",
+                  "SleepTPrior")
+
+# Other biomedical tests (Everything except unwanted variables)
+# df: other_biomedical
+unwanted_list = c("Weight", 
+                  "Height", 
+                  "SaltUsage",
+                  "SaltAddedTable",
+                  "VegesDaily",
+                  "FruitDaily",
+                  "RecommVegeFruit")
+
+```
+
+## Data Treatment 
+In addition to removing unknown special values or missing non-applicable values, domain expertise was engaged to determine the treatment of certain variables. To explore the micronutrient and lipid relationship in relation to obesity, where the BMI response variable serves as the relevant proxy, on the general Australian population, sub-populations that were deemed atypical to the “general” Australian population by domain knowledge were removed as they may be more prone to serving as outliers and not indicative of the general Australian population. Of particular importance are below.
+
+### Corrections
+#### Measurement errors
+From a careful exploration of the raw data, errors and outliers in AHS11nutrient dataset was discovered. 
+
+For example, for ABSPID: `NPA11B10037391`, according to the nutrient dataset, they consumed 6761.37 and 0.86ug of B12 on days 1 and 2 respectively, however, according to the food dataset they only consumed 1.38 and 0.86 ug of B12 on days 1 and 2 respectively. 
+
+Therefore the food dataset was collapsed as a new dataset for the nutrient data.  
+
+```{r food_grouping, echo=FALSE, eval = FALSE}
+
+
+f1  <- food %>% group_by(ABSPID) %>%
+                filter(DAYNUM == 1) %>%
+                summarise_if(is.numeric, sum)
+
+f2  <- food %>% group_by(ABSPID) %>%
+                filter(DAYNUM == 2) %>%
+                summarise_if(is.numeric, sum)  
+ps <- nutrient %>% select(ABSPID, ABSHID, BMR)
+
+f1 <- full_join(f1,ps)
+f2 <- full_join(f2,ps)
+
+nutrientT1 <- f1 %>% transmute(ABSPID = ABSPID,
+                               ABSHID = ABSHID,
+                               BMR = BMR,
+                               EIBMR1 = case_when(BMR == 99998 ~ 998,
+                                                  BMR <  99998 ~  round(ENERGYWF/BMR,4)),
+                               ENERGYT1 = ENERGYWF,
+                               ENRGYT1 = ENERGYNF,
+                               MOISTT1 = MOISTURE,
+                               PROTT1 = PROTEIN,
+                               FATT1 = FATG,
+                               CHOWSAT1 = CHOWSA,
+                               CHOWOAT1 = CHOWOSA,
+                               STARCHT1 = STARCH,
+                               SUGART1 = SUGARS,
+                               FIBRET1 = FIBRE,
+                               ALCT1 = ALCOHOL,
+                               PREVAT1 = PREVITA,
+                               PROVAT1 = PROVITA,
+                               RETEQT1 = RETEQV,
+                               B1T1 = B1MG,
+                               B2T1 = B2MG,
+                               B3T1 = B3MG,
+                               NIACINT1 = NIACINEQ,
+                               FOLATT1 = FOLATEUG,
+                               FOLICT1 = FOLACID,
+                               TOTFOLT1 = TOTFOL,
+                               FOLEQT1 = FOLATEQV,
+                               B6T1 = B6MG,
+                               B12T1 = B12UG,
+                               VITCT1 = VITCMG,
+                               VITET1 = VITEMG,
+                               CALCT1 = CALMG,
+                               IODINET1 = IODINEUG,
+                               IRONT1 = IRONMG,
+                               MAGT1 = MAGMG,
+                               PHOST1 = PHOSMG,
+                               POTAST1 = POTASMG,
+                               SELT1 = SELUG,
+                               SODIUMT1 = SODMG,
+                               ZINCT1 = ZINCMG,
+                               CAFFT1 = CAFFMG,
+                               CHOLT1 = CHOLMG,
+                               SATFATT1 = SFAG,
+                               MUFATT1 = MUFAG,
+                               PUFATT1 = PUFAG,
+                               LAT1 = LAG,
+                               ALAT1 = ALAG,
+                               LCN3T1 = LCN3MG,
+                               TRANST1 = TRANSMG)
+
+nutrientT2 <- f2 %>% transmute(ABSPID = ABSPID,
+                               ABSHID = ABSHID,
+                               BMR = BMR,
+                               EIBMR2 = case_when(ENERGYWF == 0 ~ 998,
+                                                  BMR == 99998 ~ 998,
+                                                  BMR <  99998 ~  round(ENERGYWF/BMR,4)),
+                               ENERGYT2 = ENERGYWF,
+                               ENRGYT2 = ENERGYNF,
+                               MOISTT2 = MOISTURE,
+                               PROTT2 = PROTEIN,
+                               FATT2 = FATG,
+                               CHOWSAT2 = CHOWSA,
+                               CHOWOAT2 = CHOWOSA,
+                               STARCHT2 = STARCH,
+                               SUGART2 = SUGARS,
+                               FIBRET2 = FIBRE,
+                               ALCT2 = ALCOHOL,
+                               PREVAT2 = PREVITA,
+                               PROVAT2 = PROVITA,
+                               RETEQT2 = RETEQV,
+                               B1T2 = B1MG,
+                               B2T2 = B2MG,
+                               B3T2 = B3MG,
+                               NIACINT2 = NIACINEQ,
+                               FOLATT2 = FOLATEUG,
+                               FOLICT2 = FOLACID,
+                               TOTFOLT2 = TOTFOL,
+                               FOLEQT2 = FOLATEQV,
+                               B6T2 = B6MG,
+                               B12T2 = B12UG,
+                               VITCT2 = VITCMG,
+                               VITET2 = VITEMG,
+                               CALCT2 = CALMG,
+                               IODINET2 = IODINEUG,
+                               IRONT2 = IRONMG,
+                               MAGT2 = MAGMG,
+                               PHOST2 = PHOSMG,
+                               POTAST2 = POTASMG,
+                               SELT2 = SELUG,
+                               SODIUMT2 = SODMG,
+                               ZINCT2 = ZINCMG,
+                               CAFFT2 = CAFFMG,
+                               CHOLT2 = CHOLMG,
+                               SATFATT2 = SFAG,
+                               MUFATT2 = MUFAG,
+                               PUFATT2 = PUFAG,
+                               LAT2 = LAG,
+                               ALAT2 = ALAG,
+                               LCN3T2 = LCN3MG,
+                               TRANST2 = TRANSMG)
+
+nutrient <- full_join(nutrientT1, nutrientT2) 
+nutrient[is.na(nutrient)] <-0
+
+# Used for some older code so I don't have to refactor it
+# Nutrient data is a summary of food data, per person per day
+nutrient_old <- read.csv("./data/AHS11nutrient.csv")
+
+# The only variable here that needs to be cleaned here is the BMR variable
+# The rest will be cleaned later
+nutrient$BMR[c(which(nutrient$BMR %in% c(99998)))] <- NA
+nutrient_old$BMR[c(which(nutrient_old$BMR %in% c(99998)))] <- NA
+
+```
+
+### Omissions
+#### Micronutrients
+For certain micronutrient measures, the collapsed totals were used instead of individual measures. These include using the Retinol Equivalent (RETEQ) for ProVitamin A and PreVitamin A, and the Folate Equivalent (FOLEQ) for the various folate compounds
+
+#### Status variables
+Many continous (or ordinal) measures in the biomedical dataset had status ("healthy" or "unhealthy", broadly) counterparts. Since we planned on using the continous (or ordinal) measures, these status variables were excluded from our dataset.
+```{r biomedical_cols, eval = FALSE}
+# Biomedical dataset
+
+# Remove status columns from dataset for variables that have a continuous counterpart
+status_names_list = c("TRIGNTR", 
+                      "LDLNTR", 
+                      "GLUCFPD", 
+                      "GGTNTR", 
+                      "FASTSTAD", 
+                      "CHOLNTR", 
+                      "APOBNTR", 
+                      "ALTNTR", 
+                      "BIORESPC", 
+                      "DIAHBRSK")
+biomedical <- biomedical %>% select(-one_of(status_names_list))
+```
+
+### Removals
+#### Missing values
+
+For individuals who provided nutrient data for days 1 and 2, the means of the two days were computed for further analysis. For individuals who only provided data for 1 day, the value for that day was used.
+
+```{r nutrient_variables, eval = FALSE}
+
+# Micronutrients
+# Create a full list with the T1/T2 variable names
+micronutrients_list_large = c()
+for (micro in micronutrients_list_small) {
+  micronutrients_list_large <- c(micronutrients_list_large, 
+                                 paste(micro,"T1",sep=""), 
+                                 paste(micro,"T2",sep=""))
+}
+
+
+
+# Lipids
+# Create a full list with the T1/T2 variable names
+lipids_list_large = c()
+for (lip in lipids_list_small) {
+  lipids_list_large <- c(lipids_list_large, 
+                                 paste(lip,"T1",sep=""), 
+                                 paste(lip,"T2",sep=""))
+}
+
+#Create a full list with the percentage values (PER1, PER2)
+lipids_percentages_list_large = c()
+for (lipper in lipids_percentages_list_small) {
+  lipids_percentages_list_large <- c(lipids_percentages_list_large, 
+                                             paste(lipper,"1",sep=""), 
+                                             paste(lipper,"2",sep=""))
+  
+}
+
+
+```
+
+```{r micronutrients, eval = FALSE}
+#Create a dataframe containing the two day averages
+# of selected micronutrients per person.
+
+#Select relevant columns from the main nutrients file
+micronutrients <- nutrient %>% select(ABSHID, ABSPID, BMR, ENERGYT2,
+                                      one_of(micronutrients_list_large)) 
+
+#Average the values of T1 and T2 for each micronutrient
+# and remove the old T1 and T2 values
+# Note: Some people only did the food survey for one day, in this case we just take the first day value.
+# Note: This runs really slowly because of the case_when
+
+for (micro in micronutrients_list_small) {
+  microT1 <- paste(micro,"T1",sep="") 
+  microT2 <- paste(micro,"T2",sep="")
+
+  micronutrients <- micronutrients %>%
+                          rowwise() %>%
+                          mutate(!!sym(micro) :=  
+                                   case_when(ENERGYT2 > 0 ~ mean(c(!!sym(microT1),!!sym(microT2))),
+                                             ENERGYT2 == 0 ~ !!sym(microT1))) %>%
+                          select(-c(microT1, microT2))
+}
+
+micronutrients <- micronutrients %>% select(-ENERGYT2)
+
+#Following a similar procedure as above, this time for lipids.
+
+#Select relevant columns from the main nutrients file
+lipids <- nutrient %>% select(ABSHID, ABSPID, BMR, ENERGYT2,
+                                      one_of(lipids_list_large)) 
+
+#Average the values of T1 and T2 for each micronutrient total
+# and remove the old T1 and T2 values
+# Note: Some people only did the food survey for one day, in this case we just take the first day value.
+# Note: This runs really slowly because of the case_when
+for (lip in  lipids_list_small) {
+  lipT1 <- paste(lip,"T1",sep="") 
+  lipT2 <- paste(lip,"T2",sep="")
+
+  lipids <-  lipids %>%
+                          rowwise() %>%
+                          mutate(!!sym(lip) := 
+                                   case_when(ENERGYT2 > 0 ~ mean(c(!!sym(lipT1),!!sym(lipT2))),
+                                             ENERGYT2 == 0 ~ !!sym(lipT1))) %>%
+                          select(-c(lipT1, lipT2))
+}
+
+#Select relevant columns from the old nutrients file
+lipids_per <- nutrient_old %>% select(ABSHID, ABSPID, BMR, ENERGYT2,
+                                      one_of(lipids_percentages_list_large))
+
+#Average the values of PER1 and PER2 for each percentage micronutrient
+# and remove the old PER1 and PER2 values
+# Note: Some people only did the food survey for one day, in this case we just take the first day value.
+# Note: This runs really slowly because of the case_when
+for (lipper in  lipids_percentages_list_small) {
+  lipper1 <- paste(lipper,"1",sep="") 
+  lipper2 <- paste(lipper,"2",sep="")
+
+  lipids_per <-  lipids_per %>%
+                          rowwise() %>%
+                          mutate(!!sym(lipper) :=
+                                   case_when(ENERGYT2 > 0 ~ mean(c(!!sym(lipper1),!!sym(lipper2))),
+                                             ENERGYT2 == 0 ~ !!sym(lipper1))) %>%
+                          select(-c(lipper1, lipper2))
+}
+lipids_per <- lipids_per %>% select(-ENERGYT2)
+
+
+lipids <- full_join(lipids,lipids_per)
+```
+
+#### Age
+
+The growth patterns and dietary needs of people under 21 and over 65 violate the assumptions of the BMI measurement standards for an average adult as they may require an entirely different BMI measurement standard.
+```{r ageClean, eval= FALSE}
+biomedical$AGEC[biomedical$AGEC < 20] <-NA
+biomedical$AGEC[biomedical$AGEC > 65] <-NA
+```
+
+#### Under-reporters
+
+The widely observed tendency for underestimation of food intake in nutrition surveys is of significant contribution to survey related data error. The Goldberg cut-off method is used to evaluate the mean population bias in reported energy intake based on the premise that if weight is stable, energy expenditure equals energy intake. Under-reporters are identified by comparing basal metabolic rate with reported energy intake and applying Goldberg cut-off values to assess the plausibility of reported energy intake and eliminate (ABS.gov.au, 2014).
+
+```{r underReportClean, eval = FALSE}
+nutrient$EIBMR2[between(nutrient$EIBMR1,0,0.9)] <-NA
+```
+
+Including under-reporters would create biases in our data. Since under-reporting appears to be more prevalent amongst females than males, the practice appears to increase with age, and appears to increase as BMI increases (ABS.gov.au, 2014).
+
+#### Pregnant and breastfeeding women
+The BMI of women during these particular female life stages will be impacted by atypical physiological and metabolic requirements as they require modified micronutrient and lipid intake
+
+```{r pregnantClean, eval=FALSE}
+biomedical$FEMLSBC[c(which(biomedical$FEMLSBC %in% c(2,3)))] <-NA
+```
+
+#### Individuals on a diet
+Since there are a multitude of diet types whereby some involve low fats and others involve high fat, individuals who have a personalised diet plan catered specifically to their own unique needs cannot be indicative of the general population.
+
+```{r dietClean, eval = FALSE}
+# Remove individuals on a diet
+# Additionally, we code any remaining columns by their NA values given in nutmstatDataItems2019.xlsx
+
+biomedical <- biomedical %>%
+  mutate(DIETQ12 = na_if(DIETQ12, 0),
+         DIETQ12 = na_if(DIETQ12, 6),
+         DIETQ14 = na_if(DIETQ14, 0),
+         DIETQ14 = na_if(DIETQ14, 6),
+         DIETQ5 = na_if(DIETQ5, 0),
+         DIETQ8 = na_if(DIETQ8, 0),
+         DIETRDI = na_if(DIETRDI,0),
+         DIETRDI = na_if(DIETRDI, 3),
+         SMKDAILY = na_if(SMKDAILY, 0),
+         SMKSTAT = na_if(SMKSTAT, 0))
+```
+
+```{r bioCleanRemainder, eval = FALSE}
+# Code remaining NA values
+# Rename variables
+# Subset data into smaller files
+# Save files for later use
+
+
+
+# Cleaning the remainder of the biomedical dataset
+# NA values taken from nutmstatDataItems2019.xlsx
+biomedical$BMISC[c(which(biomedical$BMISC %in% c(97,98,99)))] <- NA
+biomedical$BDYMSQ04[c(which(biomedical$BDYMSQ04 %in% c(1,2,3)))] <-NA
+biomedical$EXLWTBC[c(which(biomedical$EXLWTBC %in% c(9996,9999)))] <-NA
+biomedical$EXLWMBC[c(which(biomedical$EXLWMBC %in% c(9996,9999)))] <-NA
+biomedical$EXLWVBC[c(which(biomedical$EXLWVBC %in% c(9996,9999)))] <-NA
+biomedical$PHDCMWBC[c(which(biomedical$PHDCMWBC %in% c(997,998,999)))] <-NA
+biomedical$SF2SA1QN[c(which(biomedical$SF2SA1QN %in% c(0,99)))] <-NA
+biomedical$INCDEC[c(which(biomedical$INCDEC %in% c(0,99,98)))] <-NA
+biomedical$ADTOTSE[c(which(biomedical$ADTOTSE %in% c(9996,9999)))] <-NA
+biomedical$DIASTOL[c(which(biomedical$DIASTOL %in% c(0,999,998)))] <-NA
+biomedical$SABDYMS[c(which(biomedical$SABDYMS %in% c(0,8,9)))] <-NA
+biomedical$SLPTIME[c(which(biomedical$SLPTIME %in% c(9999,9998)))] <-NA
+biomedical$SYSTOL[c(which(biomedical$SYSTOL %in% c(0,999,998)))] <-NA
+biomedical$ALTRESB[c(which(biomedical$ALTRESB %in% c(98,97)))] <-NA
+biomedical$APOBRESB[c(which(biomedical$APOBRESB %in% c(98,97)))] <-NA
+biomedical$B12RESB[c(which(biomedical$B12RESB %in% c(98,97)))] <-NA
+biomedical$CHOLRESB[c(which(biomedical$CHOLRESB %in% c(98,97)))] <-NA
+biomedical$CVDMEDST[c(which(biomedical$CVDMEDST %in% c(0,8)))] <-NA
+biomedical$FOLATREB[c(which(biomedical$FOLATREB %in% c(98,97)))] <-NA
+biomedical$GLUCFREB[c(which(biomedical$GLUCFREB %in% c(98,97)))] <-NA
+biomedical$HBA1PREB[c(which(biomedical$HBA1PREB %in% c(8,7)))] <-NA
+biomedical$HDLCHREB[c(which(biomedical$HDLCHREB %in% c(8,7)))] <-NA
+biomedical$LDLRESB[c(which(biomedical$LDLRESB %in% c(98,97)))] <-NA
+biomedical$TRIGRESB[c(which(biomedical$TRIGRESB %in% c(98,97)))] <-NA
+
+
+
+# Rename some biomedical variables so they 
+#   are human readable
+biomedical <- biomedical %>%
+                 rename("BMI" = "BMISC",
+                        "FeLifeStage" = "FEMLSBC", 
+                        "Weight" = "PHDKGWBC", 
+                        "Height" = "PHDCMHBC", 
+                        "TotalMinPA" = "EXLWTBC", 
+                        "ModeratePA" = "EXLWMBC", 
+                        "VigorousPA" = "EXLWVBC", 
+                        "WaistCircum" = "PHDCMWBC", 
+                        "SESIndex" = "SF2SA1QN", 
+                        "HouseholdIncome" = "INCDEC", 
+                        "DiabetesMellitus" = "DIABBC", 
+                        "HighCholersterol" = "HCHOLBC", 
+                        "HighSugarBlood/Urine" = "HSUGBC", 
+                        "Hypertensive" = "HYPBC", 
+                        "TotalMinSitting/Lying" = "ADTOTSE", 
+                        "Dieting" = "BDYMSQ04",
+                        "DiastolicBP" = "DIASTOL",
+                        "SaltUsage" = "DIETQ12",
+                        "SaltAddedTable" = "DIETQ14",
+                        "VegesDaily" = "DIETQ5", 
+                        "FruitDaily" = "DIETQ8", 
+                        "RecommVegeFruit" = "DIETRDI", 
+                        "SelfPBodyMass" = "SABDYMS", 
+                        "Sex" = "SEX",
+                        "SleepTPrior" = "SLPTIME",
+                        "DailySmoker" = "SMKDAILY", 
+                        "Smoker" = "SMKSTAT", 
+                        "SystolicBP" = "SYSTOL", 
+                        "ALTcategories" = "ALTRESB", 
+                        "ApoBRanged" = "APOBRESB", 
+                        "VitB12Ranged" = "B12RESB", 
+                        "TotalCholesterolRanged" = "CHOLRESB", 
+                        "DyslipidaemiaStat" = "CVDMEDST", 
+                        "FolateRanged" = "FOLATREB", 
+                        "GGTRanged" = "GGTRESB", 
+                        "FastPlasmaGlucRange" = "GLUCFREB", 
+                        "HbA1cRanged" = "HBA1PREB", 
+                        "HDLCholesterolRange" = "HDLCHREB", 
+                        "FastLDLCholersterolRange" = "LDLRESB", 
+                        "FastTriglycerideRange" = "TRIGRESB", 
+                        "Age" = "AGEC", 
+                        "SocialMarital" = "SMSBC",
+                        "CountryBirth" = "COBBC")
+
+
+# Subset the data into smaller dataframes for eda
+
+# Body mass
+# df: body_mass
+body_mass <- biomedical %>%
+              select("ABSPID",
+                     one_of(body_mass_list))
+
+# Micronutrients
+# df: micronutrients already subsetted
+
+# Lipids
+# df: lipids already subsetted
+
+
+# Lipid Tolerance
+# df: lipid_tolerance
+lipid_tolerance <- biomedical %>%
+                    select("ABSPID",
+                           one_of(lipid_tolerance_list))
+
+# Personal
+# df: personal
+personal <- biomedical %>%
+              select("ABSPID",
+                     one_of(personal_list))
+
+# Activity
+# df: activity
+activity <- biomedical %>%
+              select("ABSPID",
+                     one_of(activity_list))
+
+# Other biomedical tests (Everything except unwanted variables)
+# df: other_biomedical
+other_biomedical <- biomedical %>%
+                      select(-one_of(unwanted_list),
+                             -one_of(body_mass_list),
+                             -one_of(lipid_tolerance_list),
+                             -one_of(personal_list),
+                             -one_of(activity_list))
+
+# Save as rds files
+# Subsets
+saveRDS(body_mass, "./data/rds/body_mass.rds")
+saveRDS(micronutrients, "./data/rds/micronutrients.rds")
+saveRDS(lipids, "./data/rds/lipids.rds")
+saveRDS(lipid_tolerance, "./data/rds/lipid_tolerance.rds")
+saveRDS(personal, "./data/rds/personal.rds")
+saveRDS(activity, "./data/rds/activity.rds")
+saveRDS(other_biomedical, "./data/rds/other_biomedical.rds")
+```
+
+
+### Micronutrient Score {#microscore}
+To assist certain tests and as a method of domain-influenced dimension reduction, a micronutrient score was attributed to every individual based on the following metric.
+
+$$
+\begin{align}
+microscore &=  \sum_{i=1}^{r} \frac{X_i - \mu _i}{\sigma _i} \\
+X_i &= \frac{intake}{RDI} \\
+r &= 1\,, ... ,n\,\text{(all micronutrients)}
+\end{align} \\
+\\
+$$
+This microscore is formulated to dictate a proportion whereby an individual’s actual micronutrient intake is compared to the recommended daily micronutrient intake found in academic literature. This proportion is then standardised based on the normality assumption. 
+
+#### Assumptions
+In order to standardise every individual micronutrient, it is assumed that every variable is normally distributed. Statistically, the summation of pairwise independent normal distributions result in a normal distribution. Since many of the models fitted for further analysis require a normality assumption for the predictors, such as logistic regression and LDA, we also assume that the constructed microscore follows this normality assumption in question. 
+
+
+```{r rdi_adjustment, message = FALSE, eval = FALSE}
+micronutrients <- readRDS("./data/rds/micronutrients.rds")
+personal <- readRDS("./data/rds/personal.rds")
+
+#Should join by ABSPID
+micro_personal <- full_join(micronutrients,personal)
+
+# These values taken from https://www.nrv.gov.au/nutrients
+ratios <- micro_personal %>%
+            transmute(ABSPID = ABSPID, 
+                      IODINE = IODINE/150,
+                      PHOS = PHOS/1000,
+                      POTAS = case_when(Sex == 1 ~ POTAS/3800,
+                                        Sex == 2 ~ POTAS/2800),
+                      SODIUM = SODIUM/690,
+                      CALC = case_when(Sex == 1 ~ CALC/1000,
+                                       Sex == 2 && Age <= 50 ~ CALC/1000,
+                                       Sex == 2 && Age > 50 ~ CALC/1300,
+                                       Sex == 2 ~ CALC/1000),
+                      IRON = case_when(Sex == 1 ~ IRON/8,
+                                       Sex == 2 ~ IRON/18),
+                      NIACIN = case_when(Sex == 1 ~ NIACIN/16,
+                                         Sex == 2 ~ NIACIN/14),
+                      FOLEQ = FOLEQ/400,
+                      RETEQ = case_when(Sex == 1 ~ RETEQ/900,
+                                        Sex == 2 ~ RETEQ/700),
+                      B1 = case_when(Sex == 1 ~ B1/1.2,
+                                     Sex == 2 ~ B1/1.1),
+                      B2 = case_when(Sex == 1 ~ B2/1.3,
+                                    Sex == 2 ~ B2/1.1),
+                      B6 = case_when(Age <= 50 ~ B6/1.3,
+                                     Age > 50  ~ B6/1.5,
+                                     TRUE ~ B6/1.3),
+                      B12 = B12/2.4,
+                      VITC = VITC/45,
+                      VITE = case_when(Sex == 1 ~ VITE/10,
+                                       Sex == 2 ~ VITE/7),
+                      MAG = case_when(Sex == 1 ~ MAG/420,
+                                      Sex == 2 ~ MAG/320),
+                      SEL = case_when(Sex == 1 ~ SEL/70,
+                                      Sex == 2 ~ SEL/60),
+                      ZINC = case_when(Sex == 1 ~ ZINC/14,
+                                       Sex == 2 ~ ZINC/8))
+ratios <- ratios %>% drop_na()
+
+
+scale2 <- function(x) as.vector(scale(x))
+scores <- ratios %>% 
+            mutate_if(is.numeric, scale2) %>%
+            rename_if(is.numeric, paste, "S", sep=".")
+
+scores <- scores %>% rowwise() %>%
+            mutate(micro.score = sum(IODINE.S:ZINC.S))
+ratios <- ratios %>% 
+            rename_if(is.numeric, paste, "R", sep=".")
+
+# Save for later use
+saveRDS(ratios, "./data/rds/micronutrient_RDI_ratios.rds")
+saveRDS(scores, "./data/rds/micronutrient_scores.rds")
+```
+
+
+## Confounding effects
+
+```{r corrplot, warning = F, message=FALSE, echo=FALSE,  fig.height=7, fig.width=7, fig.cap = "A correlation plot based on the covariance matrix for all variables of the subsetted data."}
+
+# correlation plot with lipids, liptol, micronutrient, BMI
+lipids <- readRDS("./data/rds/lipids.rds")
+micronutrients <- readRDS("./data/rds/micronutrients.rds")
+body_mass <- readRDS("./data/rds/body_mass.rds")
+
+data_corr <- lipids %>% inner_join(micronutrients) %>%
+                        inner_join(body_mass) %>%
+                        select(-ABSPID, -ABSHID, -WaistCircum) %>%
+                        drop_na()
+
+ggcorrplot(cor(data_corr), 
+           hc.order = TRUE,
+           outline.col = "black",
+           tl.cex = 10)
+```
+Figure \@ref(fig:corrplot) suggests the data has a high degree of collinearity, especially within 'groups'. Additionally some 'groups' appear to be highly correlated with others. We can investigate these group trends below.
+```{r groups, eval=FALSE}
+# These variable grouplists will be used for certain plots
+activity <- readRDS("./data/rds/activity.rds")
+body_mass <- readRDS("./data/rds/body_mass.rds")
+lipid_tolerance <- readRDS("./data/rds/lipid_tolerance.rds")
+lipids <- readRDS("./data/rds/lipids.rds")
+micronutrients <- readRDS("./data/rds/micronutrients.rds")
+personal <- readRDS("./data/rds/personal.rds")
+
+
+
+data <- activity  %>% full_join(body_mass) %>%
+                      full_join(lipid_tolerance) %>%
+                      full_join(lipids) %>%
+                      full_join(micronutrients) %>%
+                      full_join(personal) %>%
+                      select(-ENERGYT2, -ALCPER, -ABSPID, -ABSHID)
+
+groupList <- list(colnames(micronutrients %>% select( -ABSPID, -ABSHID, -BMR)),
+                  colnames(lipids %>% select( -ABSPID, -ABSHID, -BMR, -ENERGYT2, -ALCPER)),
+                  colnames(lipid_tolerance %>% select( -ABSPID)),
+                  c(colnames(body_mass %>% select( -ABSPID)),"BMR"),
+                  colnames(personal %>% select(-ABSPID)),
+                  colnames(activity %>% select( -ABSPID)))
+                  
+
+names(groupList) = c("Micronutrients",
+                     "Lipids",
+                     "LipidTol.",
+                     "BodyMass",
+                     "Personal",
+                     "Activity")
+
+
+groupNums <- list(Micronutrients = which(colnames(data) %in% groupList$Micronutrients),
+                  Lipids = which(colnames(data) %in% groupList$Lipids),
+                  LipidTol. = which(colnames(data) %in% groupList$LipidTol.),
+                  BodyMass = which(colnames(data) %in% groupList$BodyMass),
+                  Personal = which(colnames(data) %in% groupList$Personal),
+                  Activity = which(colnames(data) %in% groupList$Activity))
+
+gd = structure(rep(names(groupList), times = sapply(groupList, length)), names = unlist(groupList))
+
+saveRDS(groupList,"./data/rds/groupList.rds")
+saveRDS(groupNums,"./data/rds/groupNums.rds")
+saveRDS(gd,"./data/rds/gd.rds")
+
+
+correlations <- cor_auto(data, detectOrdinal = FALSE)
+saveRDS(correlations, "./data/rds/correlations.rds")
+
+```
+
+```{r chordDiagram, warning = FALSE, message = FALSE, echo=FALSE, include=FALSE}
+c <- readRDS("./data/rds/correlations.rds")
+chordDiagram(c)
+```
+
+```{r circplot2, message=FALSE, warning=FALSE, fig.cap = "A correlation plot showing trends within and between 'groups' of variables."}
+
+# Code and idea for this plot thanks to:
+# http://jokergoo.github.io/blog/html/large_matrix_circular.html
+
+c <- readRDS("./data/rds/correlations.rds")
+groupList <- readRDS("./data/rds/groupList.rds")
+groupNums <- readRDS("./data/rds/groupNums.rds")
+gd <- readRDS("./data/rds/gd.rds")
+
+groupColours = structure(rainbow(length(groupList)), names = names(groupList))
+groupSize = lapply(groupList, length)
+
+col_fun = colorRamp2(c(-1,0,1), c("blue", "white", "red"), transparency = 0.5)
+n = nrow(c)
+rn = rownames(c)
+
+circos.par(cell.padding = c(0,0), 
+           canvas.xlim = c(-1.1, 1.1), 
+           canvas.ylim = c(-1.1,1.1),
+           points.overflow.warning = FALSE)
+circos.initialize(names(groupList), xlim = cbind(rep(0, length(groupList)), groupSize))
+
+circos.trackPlotRegion(ylim = c(0, 1), panel.fun = function(x, y) {
+    nm = get.cell.meta.data("sector.index")
+    r = groupList[[nm]]
+    n = length(r)
+    circos.rect(seq(0, n-1), rep(0, n), 1:n, rep(2, n), col = groupColours[nm])
+    circos.text(1:n - 0.5, rep(1, n), abbreviate(r, minlength = 4), facing = "clockwise", niceFacing = TRUE, cex = 0.6)
+    circos.text(n/2, 2.2, nm, adj = c(0.5, 0), facing = "bending", niceFacing = TRUE)
+}, bg.border = NA, track.height = 0.1)
+
+v_i = NULL
+v_j = NULL
+v_g1 = NULL
+v_g2 = NULL
+v_k1 = NULL
+v_k2 = NULL
+v = NULL
+for(i in 1:(n-1)) {
+    for(j in seq(i+1, n)) {
+        g1 = gd[rn[i]]
+        g2 = gd[rn[j]]
+        r1 = gd[gd == g1]
+        k1 = which(names(r1) == rn[i]) - 0.5
+        r2 = gd[gd == g2]
+        k2 = which(names(r2) == rn[j]) - 0.5
+
+        v_i = c(v_i, i)
+        v_j = c(v_j, j)
+        v_g1 = c(v_g1, g1)
+        v_g2 = c(v_g2, g2)
+        v_k1 = c(v_k1, k1)
+        v_k2 = c(v_k2, k2)
+        v = c(v, c[i, j])
+    }
+}
+df = data.frame(i = v_i, j = v_j, g1 = v_g1, g2 = v_g2, k1 = v_k1, k2 = v_k2, v = v)
+df = df[order(abs(df$v)), ]
+
+for(i in seq_len(nrow(df))) {
+    circos.link(df$g1[i], df$k1[i], df$g2[i], df$k2[i], col = col_fun(df$v[i]))
+}
+circos.clear()
+
+```
+
+As shown in Figure \@ref(fig:circplot2), we can see a high degree of correlation within groups of micronutrients and lipids, as well as a reasonably high level of correlation between those two groups. 
+
+### Lipid tolerance and Micronutrient relationship
+In literature, Impaired lipid tolerance is typically associated with micronutrient deficiency as many micronutrients play an essential role in lipid metabolism (Fidanza & Audisio, 1982). HDLCholesterolRange appears to be negatively correlated with micronutrients for both vitamins such as `B1`, `B2`, `B12`, as well as minerals such as `SODIUM`, `ZINC` and `IRON`, as does `FastLDLCholesterolRange`. Consistent with domain knowledge, `FastTriglycerideRange` is positively correlated with `FastLDLCholesterolRange` but negatively correlated with `HDLCholesterolRange`, although `FastLDLCholesterolRange` and `HDLCholesterol` are positively correlated with each other. There appears to be a general negative correlation between lipid tolerance biomarkers and amount of micronutrients in an individual’s diet.
+
+### Lipid and Micronutrients on BMI
+There appears to be a negative correlation between BMI `HDLCholesterolRange`, however a positive correlation with `FastLDLCholesterolRange`. Literature supports the negative correlation between BMI and HDL cholesterol, due to the protective effects of HDL cholesterol (Klop et al., 2013). It appears that BMI is positively correlated with saturated fats such as `SATPER` and `TRANPER`, and negatively correlated with unsaturated fats such as `POLYPER` and essential fatty acids such as `ALAPER` and `LAPER`. This aligns with well-established literature (Thomas et al., 2017; National Heart Foundation, 2003). This is because saturated fatty acids contribute to postprandial inflammation, which reduces the activity of lipoprotein lipase, resulting in greater storage of lipids and increasing adiposity which can be reflected in the BMI score (Klop et al., 2013). It was also found that abnormalities in lipid metabolism regarding `DyslipidaemiaStat` is associated with higher BMI categories (Hofmann et al., 2007). 
+
+
+# Models
+Any following classifiers were assessed using 100 repetitions of 10-fold cross-validation to determine the prediction accuracy of the classifiers modelled below. The methodology adopted involves splitting the subsetted dataset into a training set and test set and then conducting 100 repetitions of 10-fold cross-validation. Repeated K-fold cross validation is a robust method of estimating accuracy.  In such cross-validation procedures, there is generally a 90:10 split between the training set and test set.
+
+The procedure involves a single parameter, K, that refers to the number of partitions (or subsets) that a given data sample is to be split into. One of the K subsets are held out to be the test set while the models are trained on the other (K-1) training subsets. This process will provide us with, not only prediction accuracies for each instance of K but also will provide an overall accuracy of the classifier. This allows for a determination of the prediction accuracy, this final accuracy value is generally a mean of all the repetitions.  
+
+
+## Logistic regression {#logit}
+
+Although some models, such as decision trees, are immune to multicollinearity, certain models such as logistic regression requires independent predictor variables. From the correlation plot, it appears that micronutrients are highly correlated with each other, this can mask the effects of the other biomedical variables of interest or create instances of the Simpson’s paradox.
+
+To avoid the undesirable effects of multicollinearity, a self-formulated “micronutrient score” was created to effectively summarise the micronutrient variables into a single standardised numerical value. See [Microscore](#microscore).
+
+
+### Stratification of variables
+Since binary logistic regressions requires a binary response variables, `FATPER` and BMI variables were stratified into sub-groups with similar characteristics. BMI allows for an investigation of lipids and micronutrients with obesity as per the research question and hypotheses. Non-obese individuals were those with BMI from 0-30 (observations: 1156) and Obese individuals had 30+ BMI (Observations: 340). Percentage of energy from total fat (FATPER) allows for an exploration of the relationship between lipids and micronutrients. Low- fat diets were those with FATPER as 0-30% and high-fat diets were those of 30+% $\small{E_{Total\,Fat}}$.
+After seeking domain knowledge, we identified control variables that need to be included, especially in the logistic regression models. 
+
+### Control variables
+Control Variables: Primarily fixed personal attributes such as Age, Sex, Weight, Height, Martial Status, Household Income and SES status; 
+
+Additional variables of interest: Certain lifestyle factors as Level of physical activity, eating habits and of particular relevance to lipid and micronutrient investigation, dyslipidemia status. 
+
+```{r datasetLogistic, message=FALSE, echo=FALSE}
+
+personal <- readRDS("./data/rds/personal.rds")
+lipids <- readRDS("./data/rds/lipids.rds")
+micronutrients <- readRDS("./data/rds/micronutrients.rds")
+micro_score <- readRDS("./data/rds/micronutrient_scores.rds") %>% 
+                          select(ABSPID, micro.score)
+body_mass = readRDS("./data/rds/body_mass.rds") %>%
+                          select(ABSPID, BMI)
+liptol = readRDS("./data/rds/lipid_tolerance.rds")
+activity = readRDS("./data/rds/activity.rds")
+
+data_logistic_full <- activity %>% 
+                      inner_join(personal) %>%
+                      inner_join(lipids) %>%
+                      inner_join(liptol) %>%
+                      inner_join(micro_score) %>%
+                      inner_join(body_mass) %>%
+                      drop_na()
+
+data_logistic_subset <- personal %>%
+                        inner_join(lipids) %>%
+                        inner_join(liptol) %>%
+                        inner_join(micro_score) %>%
+                        inner_join(body_mass) %>%
+                        drop_na()
+
+```
+
+### Penalised logistic regression
+Penalised logistic regression impose a penalty to the logistic model for having too many variables. This results in shrinking the coefficients of less contributive variables towards 0. We use both ridge and lasso regression.
+
+In ridge regression variables with a small contribution have near-zero coefficients, whilst all variables are kept in the model. This can be useful as domain knowledge suggests that all variables should have an impact.
+
+In lasso regression the coefficients of variables with a small contribution are set to zero, leaving only the most significant variables in the final model.
+
+### Fitted models 
+Since we have two similar hypotheses in (c) and (d) (See [Statistical questions](#hypothesis) ), we will fit two very similar logistic regression models, with two different response variables.
+
+#### BMI
+
+Of particular importance to the research question is the odds (i.e. $e^{log\,odds}$ ) of the microscore. This is shown below in Figure \@ref(fig:ridgeobesity)
+
+```{r ridgeobesity, echo=FALSE, fig.height=4, fig.width=8, fig.cap="Odds by factor for a ridge logistic regression fitted to obesity"}
+
+#1 Ridge Regression
+# 1. Ridge regression
+data_obesity_ridge = data_logistic_subset
+# BMI >= 30 obese, else non-obese
+data_obesity_ridge$BMI_Binary <-  as.numeric(data_obesity_ridge$BMI >= 30)
+remove = match(c("BMI", "ABSPID", "ABSHID"), names(data_obesity_ridge))
+data_obesity_ridge = data_obesity_ridge[, -remove]
+
+
+x <- data.matrix(data_obesity_ridge[,1:31])
+y <- data_obesity_ridge[,32]
+
+fit_ridge <- glmnet(x,
+                    y, 
+                    family="binomial", 
+                    alpha = 0)
+cv_ridge <- cv.glmnet(x, 
+                      y, 
+                      alpha = 0, 
+                      family = "binomial")
+lambda_obesity_ridge = cv_ridge$lambda.min
+
+coef_ridge = coef(cv_ridge, s = "lambda.min") # use lambda.min
+coef_ridge = as.data.frame(as.matrix(coef_ridge))
+coef_ridge$`1` = round(coef_ridge$`1`, 3)
+coef_ridge$`1`[coef_ridge$`1`==0.000] = NA
+coef_ridge = coef_ridge %>% drop_na()
+
+odds = round(exp(coef_ridge), 3)
+odds[odds ==0.000] = NA
+odds = odds %>% drop_na()
+
+odds %>% rownames_to_column() %>%
+                 rename(factor = rowname,
+                        odds = '1') %>%
+                 filter(factor != "Sex") %>%
+                 ggplot(aes(x = factor,
+                            y = odds - 1,
+                            fill = factor)) +
+                    geom_col() +
+                    scale_y_continuous(labels = function(y) y + 1) + 
+                    ylab("odds") +
+                    coord_flip() + theme(legend.position = "none")
+
+
+```
+
+The odds for the factor `Sex` (6.693) were ommited from this graph for readability 
+
+Here, it was evident that increasing the microscore by 1 unit, the odds of BMI decreases by 0.027 ($1-e^{-0.027}$). Expectedly, generally an increase in percentage of energy from different fats (i.e. `SATPER`, `FATPER`, `LAPER`, `ALAPER`) in the diet yields a general increase in the odds of obesity.
+The effects of `MONOPER` and essential fatty acids such as `LA` both decrease the odds of obesity , which is expected as `MUFAT` promotes efficient energy metabolism (Ayetkin et al., 2019). The odds of obesity increases by 1.146 when `FastTriglycerideRange` is increased by 1 unit which is consistent with literature (Klop et al., 2013), and the odds decrease by 0.757 when `HDLCholesterolRange` is increased by 1 unit.
+
+
+Fitting BMI as the response variable, the final lasso model is shown in Figure \@ref(fig:lassoobesity) below.
+
+```{r lassoobesity, message=FALSE, warning=FALSE, fig.height=4, fig.width=8, fig.cap="Odds by factor for a lasso logistic regression fitted to obesity"}
+
+# 2. Lasso regression
+data_obesity_lasso = data_logistic_full
+# BMI >= 30 obese, else non-obese
+data_obesity_lasso$BMI_Binary <-  as.numeric(data_obesity_lasso$BMI >= 30)
+remove = match(c("BMI", "ABSPID", "ABSHID"), names(data_obesity_lasso))
+data_obesity_lasso = data_obesity_lasso[, -remove]
+
+x <- data.matrix(data_obesity_lasso[,1:36])
+y <- data_obesity_lasso[,37]
+
+fit_lasso <- glmnet(x, 
+                    y, 
+                    family="binomial", 
+                    alpha = 1)
+cv_lasso <- cv.glmnet(x, 
+                      y, 
+                      alpha = 1, 
+                      family = "binomial") 
+lambda_obesity_lasso = cv_lasso$lambda.min
+
+coef_lasso = coef(cv_lasso, s = "lambda.min") # use lambda.min
+coef_lasso = as.data.frame(as.matrix(coef_lasso))
+coef_lasso$`1` = round(coef_lasso$`1`, 3)
+coef_lasso$`1`[coef_lasso$`1`==0.000] = NA
+coef_lasso = coef_lasso %>% drop_na()
+
+odds = round(exp(coef_lasso), 3)
+odds[odds == 0.000] = NA
+odds = odds %>% drop_na()
+
+odds %>% rownames_to_column() %>%
+                 rename(factor = rowname,
+                        odds = '1') %>%
+                 filter(factor != "Sex") %>%
+                 ggplot(aes(x = factor,
+                            y = odds - 1,
+                            fill = factor)) +
+                    geom_col() +
+                    scale_y_continuous(labels = function(y) y + 1) + 
+                    ylab("odds") +
+                    coord_flip() + theme(legend.position = "none")
+
+```
+
+The odds for the facter `Sex` (724.8) were ommited from this graph for readability
+
+Importantly, by holding other factors constant, the odds of obesity decreases by 0.037, when the microscore increases by 1 unit. The odds of obesity increases by 1.087 when `FastTriglycerideRange` (bad fat) increases by 1 unit, but decreases by 0.297 when `HDLCholesterolRange` increases. The odds of obesity increases by around 1.024-1.054 when the percentage of daily energy from fat increases. However the odds of obesity decreases by 0.005 when `MUFAT` (good fat) increases.  
+
+#### Fat Percentage
+Fitting Fat Percentage as the response variable, the final ridge penalised model is shown below in Figure \@ref(fig:ridgefat).
+
+```{r ridgefat, message=FALSE, warning=FALSE, warning=FALSE, fig.height=4, fig.width=8, fig.cap="Odds by factor for a ridge logistic regression fitted to fat percentage of energy intake"}
+# 1. Ridge regression
+data_fat_ridge = data_logistic_subset
+# BMI >= 30 obese, else non-obese
+data_fat_ridge$fat_Binary <-  as.numeric(data_fat_ridge$FATPER > 30)
+
+remove = match(c("FATPER", "ABSPID", "ABSHID"), names(data_fat_ridge))
+data_fat_ridge = data_fat_ridge[, -remove]
+
+x <- data.matrix(data_fat_ridge[,1:31])
+y <- data_fat_ridge[,32]
+
+fit_ridge <- glmnet(x, y, family="binomial", alpha = 0)
+cv_ridge <- cv.glmnet(x, y, alpha = 0, family = "binomial") 
+lambda_fat_ridge = cv_ridge$lambda.min
+#plot(fit_ridge, xvar = "lambda", label = TRUE)
+coef_ridge = coef(cv_ridge, s = "lambda.min") # use lambda.min
+coef_ridge = as.data.frame(as.matrix(coef_ridge))
+coef_ridge$`1` = round(coef_ridge$`1`, 3)
+coef_ridge$`1`[coef_ridge$`1`==0.000] = NA
+coef_ridge = coef_ridge %>% drop_na()
+
+odds = round(exp(coef_ridge), 3)
+odds[odds ==0.000] = NA
+odds = odds %>% drop_na()
+
+odds %>% rownames_to_column() %>%
+                 rename(factor = rowname,
+                        odds = '1') %>%
+                 filter(factor != "TRANPER") %>%
+                 ggplot(aes(x = factor,
+                            y = odds - 1,
+                            fill = factor)) +
+                    geom_col() +
+                    scale_y_continuous(labels = function(y) y + 1) + 
+                    ylab("odds") +
+                    coord_flip() + theme(legend.position = "none")
+
+```
+The odds for the factor `TRANPER` (4.468) were ommited from this graph for readability
+
+Finally, fitting `FATPER` as the response, the final lasso penalised model is again shown below in Figure \@ref(fig:lassofat).
+
+```{r lassofat, message=FALSE, warning=FALSE, fig.height=4, fig.width=8, fig.cap="Odds by factor for a lasso logistic regression fitted to fat percentage of energy intake"}
+
+# 2. Lasso regression
+data_fat_lasso = data_logistic_full
+# BMI >= 30 obese, else non-obese
+data_fat_lasso$fat_Binary <-  as.numeric(data_fat_lasso$FATPER > 30)
+remove = match(c("FATPER", "ABSPID", "ABSHID"), names(data_fat_lasso))
+data_fat_lasso = data_fat_lasso[, -remove]
+
+x <- data.matrix(data_fat_lasso[,1:36])
+y <- data_fat_lasso[,37]
+
+fit_lasso <- glmnet(x, y, family="binomial", alpha = 1)
+cv_lasso <- cv.glmnet(x, y, alpha = 1, family = "binomial") 
+lambda_fat_lasso = cv_lasso$lambda.min
+#plot(fit_lasso, xvar = "lambda", label = TRUE)
+coef_lasso = coef(cv_lasso, s = "lambda.min") # use lambda.min
+coef_lasso = as.data.frame(as.matrix(coef_lasso))
+coef_lasso$`1` = round(coef_lasso$`1`, 3)
+coef_lasso$`1`[coef_lasso$`1`==0.000] = NA
+coef_lasso = coef_lasso %>% drop_na()
+
+odds = round(exp(coef_lasso), 3)
+odds[odds == 0.000] = NA
+odds = odds %>% drop_na()
+
+odds %>% rownames_to_column() %>%
+                 rename(factor = rowname,
+                        odds = '1') %>%
+                 filter(factor != "SATPER") %>%
+                 filter(factor != "POLYPER") %>%
+                 filter(factor != "MONOPER") %>%
+                 ggplot(aes(x = factor,
+                            y = odds - 1, 
+                            fill = factor)) +
+                    geom_col() +
+                    scale_y_continuous(labels = function(y) y + 1) + 
+                    ylab("odds") +
+                    coord_flip() + theme(legend.position = "none")
+```
+The odds for the factors `SATPER`(39.06), `POLYPER`(31.89), and `MONOPER` (41.47) were ommited from this graph for readability
+
+Importantly, the odds of a lower-fat diet increases by 0.049 when the microscore increases by 1 unit. This is likely to be due to the abundance of micronutrients in naturally low fat containing foods (Shay et al., 2012). Expectedly, when there are increases in the percentage of energy from fats, the odds of a high-fat diet also increases. When `FastTriglyceridesRange` and `FastLDLCholesterolRange` (bad fats and bad cholesterol) increases by 1 unit, the odds of a high-fat diet increases by 1.020 and 1.035 respectively. When `HDLCholesterolRange` increases by 1 unit, the odds of a high-fat diet decreases by 0.068.
+
+### Model Assessment
+
+```{r crossValidation, echo=FALSE, eval = FALSE}
+set.seed(3888)
+#100 x 10-fold Cross Validations
+K = 10
+R = 100
+
+# (1) OBESITY
+# obesity with lasso
+n = nrow(data_obesity_lasso)
+glm_error <- data.frame(matrix(ncol = R, nrow = K))
+
+for (r in 1:R){
+  #10-fold cross-validation with different partitions
+  sets = sample(rep(1:K,n)[1:n],n)
+ for (k in 1:K){
+
+     #10-fold Cross-validation
+     #Construct train/test sets
+     test_set <- which(sets==k)
+     train_set <- (1:n)[-test_set]
+
+     train_data <- data_obesity_lasso[train_set,]
+     test_data <- data_obesity_lasso[test_set,]
+
+     x <- data.matrix(train_data[,1:36])
+     y <- train_data[,37]
+
+     fit_lasso <- glmnet(x, y, family="binomial", alpha = 1, lambda = lambda_obesity_lasso)
+
+     test_prob <- predict(fit_lasso, data.matrix(test_data[,-37]), type="response")
+     test_pred <- round(test_prob)
+     errs = sum(test_data$BMI_Binary != test_pred)/length(test_pred)
+     glm_error[k,r] = errs
+ }
+}
+saveRDS(glm_error, "./data/rds/cv/obesity_lasso.rds")
+
+
+# obesity with ridge
+n = nrow(data_obesity_ridge)
+glm_error <- data.frame(matrix(ncol = R, nrow = K))
+
+for (r in 1:R){
+  #10-fold cross-validation with different partitions
+  sets = sample(rep(1:K,n)[1:n],n)
+ for (k in 1:K){
+
+     #10-fold Cross-validation
+     #Construct train/test sets
+     test_set <- which(sets==k)
+     train_set <- (1:n)[-test_set]
+
+     train_data <- data_obesity_ridge[train_set,]
+     test_data <- data_obesity_ridge[test_set,]
+
+     x <- data.matrix(train_data[,1:31])
+     y <- train_data[,32]
+
+     fit_ridge <- glmnet(x, y, family="binomial", alpha = 1, lambda = lambda_obesity_ridge)
+
+     test_prob <- predict(fit_ridge, data.matrix(test_data[,-32]), type="response")
+     test_pred <- round(test_prob)
+     errs = sum(test_data$BMI_Binary != test_pred)/length(test_pred)
+     glm_error[k,r] = errs
+ }
+}
+saveRDS(glm_error, "./data/rds/cv/obesity_ridge.rds")
+
+#(2) Fat
+# fat with lasso
+n = nrow(data_fat_lasso)
+glm_error <- data.frame(matrix(ncol = R, nrow = K))
+
+for (r in 1:R){
+  #10-fold cross-validation with different partitions
+  sets = sample(rep(1:K,n)[1:n],n)
+ for (k in 1:K){
+
+     #10-fold Cross-validation
+     #Construct train/test sets
+     test_set <- which(sets==k)
+     train_set <- (1:n)[-test_set]
+
+     train_data <- data_fat_lasso[train_set,]
+     test_data <- data_fat_lasso[test_set,]
+
+     x <- data.matrix(train_data[,1:36])
+     y <- train_data[,37]
+
+     fit_lasso <- glmnet(x, y, family="binomial", alpha = 1, lambda = lambda_fat_lasso)
+
+     test_prob <- predict(fit_lasso, data.matrix(test_data[,-37]), type="response")
+     test_pred <- round(test_prob)
+     errs = sum(test_data$fat_Binary != test_pred)/length(test_pred)
+     glm_error[k,r] = errs
+ }
+}
+saveRDS(glm_error, "./data/rds/cv/fat_lasso.rds")
+
+# fat with ridge
+n = nrow(data_fat_ridge)
+glm_error <- data.frame(matrix(ncol = R, nrow = K))
+
+for (r in 1:R){
+  #10-fold cross-validation with different partitions
+  sets = sample(rep(1:K,n)[1:n],n)
+ for (k in 1:K){
+
+     #10-fold Cross-validation
+     #Construct train/test sets
+     test_set <- which(sets==k)
+     train_set <- (1:n)[-test_set]
+
+     train_data <- data_fat_ridge[train_set,]
+     test_data <- data_fat_ridge[test_set,]
+
+     x <- data.matrix(train_data[,1:31])
+     y <- train_data[,32]
+
+     fit_ridge <- glmnet(x, y, family="binomial", alpha = 1, lambda = lambda_fat_ridge)
+
+     test_prob <- predict(fit_ridge, data.matrix(test_data[,-32]), type="response")
+     test_pred <- round(test_prob)
+     errs = sum(test_data$fat_Binary != test_pred)/length(test_pred)
+     glm_error[k,r] = errs
+ }
+}
+saveRDS(glm_error, "./data/rds/cv/fat_ridge.rds")
+```
+
+```{r logisticCV, warning = F}
+
+glm_error <- readRDS("./data/rds/cv/obesity_lasso.rds")
+accuracy_obesity_lasso = 1-mean(rowMeans(glm_error, na.rm=TRUE))
+
+glm_error <- readRDS("./data/rds/cv/obesity_ridge.rds")
+accuracy_obesity_ridge = 1-mean(rowMeans(glm_error, na.rm=TRUE))
+
+glm_error <- readRDS("./data/rds/cv/fat_lasso.rds")
+accuracy_fat_lasso = 1-mean(rowMeans(glm_error, na.rm=TRUE))
+
+glm_error <- readRDS("./data/rds/cv/fat_ridge.rds")
+accuracy_fat_ridge = 1-mean(rowMeans(glm_error, na.rm=TRUE))
+
+```
+
+All penalised logistic regressions were assessed with 20 repetitions of 10-fold cross validation. For the LASSO penalisation with BMI as the response, the prediction accuracy is 87.78%. The LASSO penalisation with `FATPER` as the response has a prediction accuracy of 97.99%. For the Ridge regularisation for the BMI response variable, the prediction accuracy is 86.40%, with `FATPER` as the response variable, the accuracy was 96.98%. Therefore these models appear to predict the relationships between the variables quite well. The accuracies of all classifiers is shown below in Fig \@ref(fig:allaccuracy).
+
+#### Assumptions
+
+Favourably, logistic regressions do not require a linear relationship between dependent and independent variables, error terms need not be normally distributed and homoscedasticity is not required.
+
+
+#### Weaknesses
+
+Most effective when there is little or no multicollinearity among the independent variables, however given the nature of interdependence and inherent co-dependencies of integrated physiological processes between lipids, micronutrients and obesity, such assumptions are difficult to satisfy in practice. 
+However, binary logistic regression is limited to response variables that are binary. Here there is quite a class imbalance when the BMI was partitioned into obese and non-obese people. 
+Additionally, a large sample size is generally required especially for large numbers of predictors. For ridge, there are 32 predictors with only 1496 observations, and the lasso regression consists of 35 predictors with only 1482 observations. 
+ 
+
+#### Limitations
+We assume that macronutrients such as protein and carbohydrates, and food group items such as red meat, fruits and vegetables, do not affect the relationship between lipids and micronutrients. This is not a great assumption to make since academic literature suggests there is an interdependent relationship between all the food components in our diets. All constituents of our diet serve a fundamental role in the integrated physiology of the human body.
+
+Since all the individual micronutrient variables have been collapsed into a single “micronutrients score” to reduce the multicollinearity problem, we cannot model the effects of the individual micronutrient components. However, since decisions trees such as CART are immune to multicollinearity, models can be fitted with the individual micronutrient variables. 
+
+
+## Classification Tree {#cart}
+
+Classification trees are a good means of visualising local interaction effects between important variables. 
+
+```{r cartBMI, warning = F, fig.cap = "CART model for relationship between micronutrients and BMI. The response variable consists of binary data of obese and non-obese classes."}
+# response variables: obese/not obese
+body_mass <- readRDS("./data/rds/body_mass.rds")
+micronutrients <- readRDS("./data/rds/micronutrients.rds")
+
+BMI = body_mass$BMI
+data_cart_obese = cbind(micronutrients, BMI)
+
+data_cart_obese$BMI_binary <- cut(data_cart_obese$BMI, 
+                   breaks=c(-Inf, 30, Inf), 
+                   labels=c("Non-obese", "Obese"))
+
+remove = match(c("ABSPID", "ABSHID", "BMI", "BMR"), names(data_cart_obese))
+data_cart_obese = data_cart_obese[, -remove]
+data_cart_obese = data_cart_obese %>% drop_na()
+
+cont  <- rpart.control(minsplit=6, maxdepth = 5, cp=0.0007206208)
+classification_tree <- rpart(BMI_binary~., data= data_cart_obese, method = "class", control = cont)
+
+bestcp <- classification_tree$cptable[which.min(classification_tree$cptable[,"xerror"]),"CP"]
+
+rpart.plot(classification_tree, type=4, extra=4, main="Obese Data", cex=0.45)
+
+```
+
+```{r cartFAT, warning = F, echo=FALSE, include = FALSE, eval = FALSE}
+# response variables: obese/not obese
+lipids <- readRDS("./data/rds/lipids.rds")
+micronutrients <- readRDS("./data/rds/micronutrients.rds")
+
+lipids = lipids %>% drop_na()
+FATPER = lipids$FATPER
+micronutrients = micronutrients %>% drop_na()
+
+data_cart_fat = cbind(micronutrients, FATPER)
+
+data_cart_fat$DIET_BINARY <- cut(data_cart_fat$FATPER, 
+                   breaks=c(-Inf, 30, Inf), 
+                   labels=c("Low-Fat", "High-Fat"))
+
+remove = match(c("ABSPID", "ABSHID", "FATPER", "BMR"), names(data_cart_fat))
+data_cart_fat = data_cart_fat[, -remove]
+data_cart_fat = data_cart_fat %>% drop_na()
+
+cont  <- rpart.control(minsplit=6, maxdepth = 5, cp=0.001078361)
+classification_tree <- rpart(DIET_BINARY~., data= data_cart_fat, method = "class", control = cont)
+rpart.plot(classification_tree, type=4, extra=4, main="Fat Data", cex=0.5)
+
+bestcp <- classification_tree$cptable[which.min(classification_tree$cptable[,"xerror"]),"CP"]
+```
+
+It appears that individuals who consume higher levels of `NIACIN` (Vitamin B3) (≥28), `B1`, and `CALC`, although with lower levels of `VITC` (<29) are classified as non-obese. This is consistent with literature since it was found that higher levels of magnesium, B-group vitamins and calcium align with previous studies since many of these are involved in fat metabolism and deposition of adipose tissue and B-group vitamins in particular have known roles in energy metabolism (Kaider-Person et al., 2008). It also appears that the micronutrients that are of most importance for obesity are `VITE`, `MAG`, `VITC`, `POTAS`, `PHOS`, `SEL`, `B6`, `B12`, `RETEC`, `ZINC` in decreasing order of importance. 
+
+There is also complexity in the relationship between the micronutrients and `FATPER`. It appears that with higher levels of `VITE` (<11, ≥ 4.8) coupled with high levels of `RETEQ` (Vitamin A) (≥ 359) and lower levels of `MAG` (<241) and `VITC` (<48) individuals tend to consume higher-fat diets. This is consistent with domain knowledge since there are a higher abundance of vitamin E and A in high-fat diets since these are fat-soluble compounds and are therefore more prevalent in high fat foods (Kaider-Person et al., 2008). However, although not present, high sodium intake in both low and high fat diets was expected as Australian adults consume above the recommended daily intake, regardless of diet (Mok et al., 2018).  It appears that the micronutrients that are of importance in differentiating the `FATPER` are `VITE`, `MAG`, `VITC`, `POTAS`, `PHOS`, `SEL`, `B6`, `B12`, `RETEQ`, `ZINC`, in decreasing order of importance.
+
+
+
+### Model Assessment
+
+```{r cartCV, warning = F, eval=FALSE}
+set.seed(3888)
+
+K = 10
+R = 100
+
+# Using the caret package to define training control
+train_control <- trainControl(method = "repeatedcv",
+                              number = K,
+                              repeats = R )
+
+train_tree_obese <- train(BMI_binary~ . ,
+                  data= data_cart_obese,
+                  method="rpart",
+                  trControl=train_control)
+
+train_tree_fat <- train(DIET_BINARY~ . ,
+                  data= data_cart_fat,
+                  method="rpart",
+                  trControl=train_control)
+
+saveRDS(train_control, "./data/rds/cv/train_control.rds")
+
+saveRDS(train_tree_obese$results, "./data/rds/cv/train_tree_obese.rds")
+saveRDS(train_tree_fat$results, "./data/rds/cv/train_tree_fat.rds")
+
+```
+
+Both CART trees were assessed with 20 repetitions of 10-fold cross validation. In such cross-validation procedures, there is generally a 90:10 split between the training set and test set. For the CART where the response variable was BMI, the prediction accuracy was around 76.13%. For `FATPER`, the prediction accuracy was around 62.05%. Therefore model illustrating the relationship between micronutrients and obesity was a relatively good model, especially compared to the `FATPER` tree. Therefore it would be more ideal to base biological and dietary inferences off the tree pertaining to BMI. 
+
+
+#### Assumptions
+Favourably, CART does not make any distributional assumptions.
+Do not require a linear relationship between the predictors.
+The accuracies of all classifiers is shown below in Fig \@ref(fig:allaccuracy).
+
+#### Weaknesses
+However, CART models is not very robust, small changes in the training data can result in a large change to the tree. CART models are also “greedy” algorithms where locally optimal decisions are made at each node, so local maximums may be found but not global maximums. At each step of building the tree, the best split is determined by minimising the error, however it is not always possible to determine the best split.  
+
+#### Limitations
+Generally, if the relationship between dependent and independent variables are well-approximated by logistic regression models, then regressions will outperform tree-based models. However, if there is a high degree of non-linearity and a complex relationship between the dependent variables, a tree model will outperform a classical regression model. Upon conducting a literature review on the micronutrients and lipids relationship in regards to obesity, it is possible that the relevant relationship is more complex than what meets the eye, i.e. more complex than a linear relationship. 
+
+## Gaussian graphical model {#ggm}
+
+Gaussian graphical modelling is a graphical method which identifies any conditional independence structures between 2 variables by assessing the pairwise correlation when controlling for others. The network structure of the model was estimated by assuming a multivariate Gaussian distribution, using the graphical lasso procedure. A sparse inverse covariance matrix was estimated using graphical lasso based on the extended BIC criterium. The nodes and edge represent conditional dependencies.
+
+
+```{r glasso, fig.cap = "Gaussian Graphical model for the relationship between micronutrient, lipid, lipid tolerance and biomedical measurement variables.", warning = FALSE, message = FALSE}
+
+# Created with: c <- cor_auto(data, detectOrdinal = FALSE)
+c <- readRDS("./data/rds/correlations.rds")
+
+groupNums <- readRDS("./data/rds/groupNums.rds")
+g <- qgraph(c, 
+            graph = "glasso", 
+            layout ="spring", 
+            sampleSize = 12153, 
+            threshold = 0.1, 
+            groups = groupNums,
+            #filetype = "pdf",
+            #filename = "qgraph-full",
+            #width = 10,
+            #height = 10,
+            repulsion = 1)
+
+```
+
+The LASSO graphical model, provides relationships of conditional independent and correlations that are similar to the correlation plot. Of the yellow lipid community, the right cluster which includes LAP and ALA contain predominantly fatty acids and unsaturated fats whereas the left cluster contains mostly saturated fats. It is clear that there are several negative correlations between micronutrients such as between NIA and CAL. 
+
+### Model Assessment
+Most of the variables were right-skewed distributions and thus not normal. This would violate the normality assumption of gaussian graphical models. A log-transformation of the variables may serve useful to satisfy this assumption. 
+
+## Log-linear {#llm}
+Log-linear analysis is used to examine the relationship between categorical variables. Models are tested to find the most parsimonious model that best accounts for the variance in the observed frequencies. The full model contains all of the main effects and interactions in the model, then all the insignificant terms are dropped.
+
+```{r loglin, message=FALSE, warning=FALSE} 
+body_mass <- readRDS("./data/rds/body_mass.rds")
+lipids <- readRDS("./data/rds/lipids.rds")
+score <- readRDS("./data/rds/micronutrient_scores.rds")
+ratio <- readRDS("./data/rds/micronutrient_RDI_ratios.rds")
+
+data_full <- body_mass %>% 
+              full_join(lipids) %>% 
+              full_join(score)
+
+data_s <- data_full %>% 
+            select(ABSPID, BMI, FATPER, micro.score) %>% 
+            drop_na()
+
+data_c <- data_s %>% transmute(ABSPID = ABSPID,
+                               Obese = cut(BMI,
+                                         breaks = c(-Inf, 30, Inf),
+                                         labels = c("No","Yes")),
+                               HighFat = cut(FATPER,
+                                            breaks = c(-Inf,30,Inf),
+                                            labels = c("No", "Yes")),
+                               Micro = cut(micro.score,
+                                                 breaks = c(-Inf, -1, -0.5, 0.5, 1, Inf),
+                                                 labels = c("VL", "L", "N", "H", "VH")))
+
+cont <- data_c %>% group_by(Obese, HighFat, Micro) %>% summarise(n = n())
+
+fullmodel <- glm(n ~ (Micro+HighFat+Obese)^3, family = poisson, data = cont)
+m1 <- step(fullmodel,direction = "both", scope = .~.^3, trace = FALSE)
+summ(m1, model.info = FALSE, digits = 4)
+```
+
+From the log-linear model output it appears that there are significant positive interaction effects between high fat diets and normal levels ($\small{p = 3.96 \times 10^{-7}}$), high levels ($\small{p=1.08 \times 10^{-7}}$), and very high levels ($\small{7.89 \times 10^{-13}}$) of micronutrients but not for low levels of micronutrients ($\small{p=0.14}$). There is also a positive interaction effect between high fat and obesity ($\small{p=0.090}$). However, it appears that there is no significant 3-way interaction effects between obesity, microscores and high fat diets.   
+
+### Model Assessment
+#### Assumptions
+
+Log-linear likelihood ratio statistic that has an approximate chi-square distribution when the sample size is large. When two models are nested, models can also be compared using a chi-square difference test.  
+
+The observations are independent and random. 
+The logarithm of the expected value of the response variable is a linear combination of the explanatory variables. 
+
+
+#### Weaknesses
+Observed frequencies should be normally distributed about expected frequencies over repeated samples. Violations to this assumption results in a large reduction in power. 
+
+Data should always be categorical. Therefore continuous data should first be converted to categorical data which would entail some loss of information. 
+
+## PCA
+PCA was conducted on the entire subsetted dataset to determine any important variables within the contextual framework of the subsetted data. They determine which variables are important in determining general dietary patterns.
+The first PC accounts for 22.9% of the total variance in the data. Larger factor loadings in magnitude indicate the variables that are important in that component, loadings with an absolute value of above 0.15 were considered when describing general dietary patterns regarding lipids and micronutrients. In descending order of importance, where the micronutrients and lipids: `PHOS`, `MUFAT`, `NIACIN`, `MAG`, `POTAS`, `IRON`, `PUFAT`, `ZINC`, `B2`, `LA`, `SATFAT`, `IODINE`, `VITE`, `SODIUM`, `ALA`, `CALC`, `SEL`, `TRANS`, `B1`, `FOLEQ`, `B6`. 
+
+```{r pca, eval=FALSE}
+require(ggbiplot)
+
+body_mass <- readRDS("./data/rds/body_mass.rds")
+lipids <- readRDS("./data/rds/lipids.rds")
+liptol <- readRDS("./data/rds/lipid_tolerance.rds")
+micronutrients <- readRDS("./data/rds/micronutrients.rds")
+personal <- readRDS("./data/rds/personal.rds")
+
+
+
+data_pca <- body_mass %>% inner_join(lipids) %>%
+                          inner_join(liptol) %>%
+                          inner_join(micronutrients) %>%
+                          inner_join(personal) %>%
+                          drop_na()
+data_pca$BMI_cat <- cut(data_pca$BMI, 
+                   breaks=c(-Inf, 18.5, 25, 30, Inf), 
+                   labels=c("Underweight", "Normal", "Overweight", "Obese"))
+
+match(c("ABSPID", "ABSHID", "BMI", "BMR"), names(data_pca))
+data_pca = data_pca[, -c(1, 10, 51, 11)]
+data_pca = data_pca %>% drop_na()
+
+pca_num <- dplyr::select_if(data_pca, is.numeric)
+
+pca_micros<- prcomp(pca_num, scale=TRUE)
+loading_scores_micros <- pca_micros$rotation[,1]
+variable_scores_micros <- abs(loading_scores_micros)
+variable_score_ranked_micros <- sort(variable_scores_micros, decreasing = TRUE)
+top_20_variables_micros <- names(variable_score_ranked_micros[1:20])
+
+plot(pca_micros$x[,1], pca_micros$x[,2])
+pca.var_micros<-pca_micros$sdev^2
+pca.var.per_micros <-round(pca.var_micros/sum(pca.var_micros)*100,1)
+barplot(pca.var.per_micros, main = "Scree Plot", xlab = "Principal Component", ylab= "Percent Variation")
+
+ggbiplot(pca_micros, obs.scale = 1, var.scale = 1,
+  groups = data_pca$BMI_cat, ellipse = TRUE, circle = TRUE) +
+  scale_color_discrete(name = '') +
+  geom_point(alpha = 0.05)+
+  theme(legend.direction = 'horizontal', legend.position = 'top')+
+  ggtitle("PCA grouped by Obesity Class")
+
+```
+
+### Model Assessment
+PCA is an unsupervised learning dimension reduction technique. PCA transforms the original predictors into linear combinations of variables where the first PC which represents the largest variance of the total data. Every succeeding PC has the highest variance under the constraint that it is orthogonal to the preceding PC. Since PCA is based on the Pearson’s correlation coefficient, there should be adequate correlations between the variables to allow for dimension reduction. PCA can only be performed on continuous data. Although ordinal variables may be used, certain categorical factors were omitted.
+
+Unfortunately, since the principal components are linear combinations of the original predictors which are combined through their shared properties, the principal components are redefined indicators and must be interpreted according to domain knowledge of the potential shared properties. PCs can be difficult to interpret, even with domain knowledge. 
+
+
+## LDA/QDA
+Linear discriminant analysis is a supervised learning dimension reduction technique which  constructs a linear boundary, using a linear combination of the variables, which maximises class separability between the class means, while minimising the variance of each of the classes. Quadratic Discriminant Analysis aims to separate measurements of the classes by a quadratic surface.
+
+```{r datalqda,  eval=FALSE}
+
+personal <- readRDS("./data/rds/personal.rds")
+lipids <- readRDS("./data/rds/lipids.rds")
+micronutrients <- readRDS("./data/rds/micronutrients.rds")
+micro_score <- readRDS("./data/rds/micronutrient_scores.rds") %>% 
+                          select(ABSPID, micro.score)
+body_mass = readRDS("./data/rds/body_mass.rds") %>%
+                          select(ABSPID, BMI)
+liptol = readRDS("./data/rds/lipid_tolerance.rds")
+activity = readRDS("./data/rds/activity.rds")
+
+data_logistic_full <- activity %>% 
+                      inner_join(personal) %>%
+                      inner_join(lipids) %>%
+                      inner_join(liptol) %>%
+                      inner_join(micro_score) %>%
+                      inner_join(body_mass) %>%
+                      drop_na() 
+
+```
+
+```{r LDA, warning = FALSE, message=FALSE, eval = FALSE}
+# LDA
+# LDA on Obesity
+
+data_lda_obesity = data_logistic_full
+
+data_lda_obesity$BMI_Binary <- cut(data_lda_obesity$BMI, 
+                   breaks=c(-Inf, 30, Inf), 
+                   labels=c("Non-obese", "Obese"))
+
+remove = match(c("BMI", "ABSPID", "ABSHID"), names(data_lda_obesity))
+data_lda_obesity = data_lda_obesity[,-remove]
+
+data_lda_obesity <- data_lda_obesity %>% mutate_if(is.numeric, list(~scale(.) %>% as.vector))
+lda_obesity <- MASS::lda(data_lda_obesity$BMI_Binary~ . , data = data_lda_obesity)
+kable(coef(lda_obesity), digits = 3, caption = "LDA: Obesity") 
+
+# LDA on Fat
+data_lda_fat = data_logistic_full
+data_lda_fat$DIET_BINARY <- cut(data_lda_fat$FATPER, 
+                   breaks=c(-Inf, 30, Inf), 
+                   labels=c("Low-Fat", "High-Fat"))
+
+remove = match(c("ABSPID", "ABSHID", "FATPER", "Dieting"), names(data_lda_fat))
+data_lda_fat = data_lda_fat[, -remove]
+
+data_lda_fat <- data_lda_fat %>% mutate_if(is.numeric, list(~scale(.) %>% as.vector))
+lda_fat <- MASS::lda(data_lda_fat$DIET_BINARY~ . , data = data_lda_fat)
+```
+
+```{r QDA, warning = FALSE, message=FALSE, eval = FALSE}
+# QDA
+# QDA on Obesity
+data_qda_obesity = data_logistic_full
+
+data_qda_obesity$BMI_Binary <- cut(data_qda_obesity$BMI, 
+                   breaks=c(-Inf, 30, Inf), 
+                   labels=c("Non-obese", "Obese"))
+
+remove = match(c("BMI", "ABSPID", "ABSHID"), names(data_qda_obesity))
+data_qda_obesity = data_qda_obesity[,-remove]
+
+data_qda_obesity <- data_qda_obesity %>% mutate_if(is.numeric, list(~scale(.) %>% as.vector))
+qda_obesity <- MASS::qda(data_qda_obesity$BMI_Binary~ . , data = data_qda_obesity)
+qda_obesity
+
+# QDA on Fat
+data_qda_fat = data_logistic_full
+data_qda_fat$DIET_BINARY <- cut(data_qda_fat$FATPER, 
+                   breaks=c(-Inf, 30, Inf), 
+                   labels=c("Low-Fat", "High-Fat"))
+
+remove = match(c("ABSPID", "ABSHID", "FATPER", "Dieting"), names(data_qda_fat))
+data_qda_fat = data_qda_fat[, -remove]
+
+ data_qda_fat <- data_qda_fat %>% mutate_if(is.numeric, list(~scale(.) %>% as.vector))
+ qda_fat <- MASS::qda(data_qda_fat$DIET_BINARY~ . , data = data_qda_fat)
+qda_fat
+```
+
+### Model Assessment
+
+Similarly to the other classifiers, a 20 repetitions of 10-fold cross validation was performed. For the LDA which separates the classes of BMI, there was an accuracy of 87.84%. The prediction accuracy for separating the classes of `FATPER` was 95.82%. The QDA which separates by `FATPER` yields a prediction accuracy of 79.26%. Therefore LDA would be a good classifier to make predictions on the relationship between the lipid and micronutrients variables on BMI and with `FATPER`. The accuracies of all classifiers is shown below in Fig \@ref(fig:allaccuracy).
+
+```{r lqdaCV, warning = F, echo=FALSE, eval=FALSE}
+set.seed(3888)
+
+K = 10
+R = 100
+
+# Using the caret package to define training control
+train_control <- trainControl(method = "repeatedcv",
+                              number = K,
+                              repeats = R )
+
+train_lda_obese <- train(BMI_Binary~ . ,
+                  data= data_lda_obesity,
+                  method="lda",
+                  trControl=train_control)
+
+
+train_lda_fat <- train(DIET_BINARY~ . ,
+                  data= data_lda_fat,
+                  method="lda",
+                  trControl=train_control)
+
+train_qda_fat <- train(DIET_BINARY~ . ,
+                  data= data_qda_fat,
+                  method="qda",
+                  trControl=train_control)
+
+saveRDS(train_control, "./data/rds/cv/train_control.rds")
+
+saveRDS(train_lda_obese$results, "./data/rds/cv/train_lda_obese.rds")
+saveRDS(train_lda_fat$results, "./data/rds/cv/train_lda_fat.rds")
+
+saveRDS(train_qda_fat$results, "./data/rds/cv/train_qda_fat.rds")
+```
+
+```{r lqdaaccuracy, echo=FALSE, eval=FALSE} 
+
+train_lda_obese <- readRDS( "./data/rds/cv/train_lda_obese.rds")
+train_lda_fat <- readRDS( "./data/rds/cv/train_lda_fat.rds")
+
+train_qda_fat <- readRDS( "./data/rds/cv/train_qda_fat.rds")
+
+kable(train_lda_obese, digits = 4, caption = "LDA: Obese") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2, width = "30em")
+
+kable(train_lda_fat, digits = 4, caption = "LDA: Fat Diet") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2, width = "30em")
+
+kable(train_qda_fat, digits = 4, caption = "QDA: Fat Diet") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2, width = "30em") 
+``` 
+
+```{r allaccuracy, fig.cap = "Comparison of classifiers used in this project, by accuracy.", warning = FALSE, message = FALSE}
+train_lda_obese <- readRDS( "./data/rds/cv/train_lda_obese.rds")
+train_lda_fat <- readRDS( "./data/rds/cv/train_lda_fat.rds")
+train_qda_fat <- readRDS( "./data/rds/cv/train_qda_fat.rds")
+
+glm_error <- readRDS("./data/rds/cv/obesity_lasso.rds")
+accuracy_obesity_lasso = 1-mean(rowMeans(glm_error, na.rm=TRUE))
+
+glm_error <- readRDS("./data/rds/cv/obesity_ridge.rds")
+accuracy_obesity_ridge = 1-mean(rowMeans(glm_error, na.rm=TRUE))
+
+glm_error <- readRDS("./data/rds/cv/fat_lasso.rds")
+accuracy_fat_lasso = 1-mean(rowMeans(glm_error, na.rm=TRUE))
+
+glm_error <- readRDS("./data/rds/cv/fat_ridge.rds")
+accuracy_fat_ridge = 1-mean(rowMeans(glm_error, na.rm=TRUE))
+
+train_tree_fat <- readRDS("./data/rds/cv/train_tree_fat.rds")
+train_tree_obese <- readRDS( "./data/rds/cv/train_tree_obese.rds")
+
+accuracy <- c(train_lda_obese$Accuracy,
+              train_lda_fat$Accuracy,
+              train_qda_fat$Accuracy,
+              accuracy_obesity_ridge,
+              accuracy_obesity_lasso,
+              accuracy_fat_ridge,
+              accuracy_fat_lasso,
+              train_tree_obese$Accuracy[3],
+              train_tree_fat$Accuracy[1])
+
+df <- data.frame(accuracy,
+                 row.names = c("LDA-Obesity",
+                               "LDA-Fat",
+                               "QDA-Fat",
+                               "Ridge-Obesity",
+                               "Lasso-Obesity",
+                               "Ridge-Fat",
+                               "Lasso-Fat",
+                               "CART-Obesity",
+                               "CART-Fat")) %>%
+                rownames_to_column() %>%
+                rename(model = rowname)
+df %>% ggplot(aes(x = model, y = accuracy, fill = model)) +
+          geom_col() +
+          theme(axis.text.x = element_text(angle = 20, 
+                                           margin = margin(8,0,0,0)),
+                legend.position = "none") +
+          geom_text(aes(label = round(accuracy,3)), vjust = -0.5) +
+          ylim(c(0,1.05))
+
+```
+
+
+#### Limitations
+
+Both assume the independent variables come from a normal distribution, i.e. multivariate normality. When considering the homoscedasticity assumption, the homogeneity of the variances of the predictors should be equal across levels of predictors for LDA. However QDA may be used when covariances are not equal. Both LDA and QDA require the number of independent variables to be less than the sample size. However it has been suggested that discriminant analysis is relatively robust to slight violations of these assumptions. 
+
+
+# Discussion & Concluding remarks
+
+In conclusion, generally the models have been consistent with literature, however there are certain elements which are inconsistent. Some of these can be explained biologically and some may be due to violations of underlying statistical model assumptions. Due to the additional assumption that macronutrients and food groups such as protein and red meats, are relationally independent of lipids and micronutrients, there are copious opportunities for future research. This study aimed to investigate the complex relationship between micronutrients and dietary fat intake with obesity and lipid metabolism as well as fill in the gaps in the current literature, especially in regards to the Australian population. Future research could include investigating the relationship between macronutrients and food groups on lipid metabolism as well as discovering more appropriate means of addressing confounding effects. 
+In relation to our classification models, although the accuracies were fairly good as they fell generally between 70-90% class imbalance in the subsetted data may have adverse effects. Interaction effects were generally consistent with domain knowledge however an expected 3-way interaction between obesity, higher micronutrient score and high-fat diets was not evident. Odds of increase and decrease of obesity due to increases in lipid, lipid tolerance and micronutrient variables were generally consistent with current literature as well as the correlation between such variables. However one must hold doubt when drawing inferences from studies in this area since even current literature have not been found to be consistent regarding these key group dynamics. 
+
+
+
+# References
+
+ABS.gov.au. (2014). Australian Health Survey: Users' Guide, 2011-13. [online] Available at: https://www.abs.gov.au/ausstats/abs@.nsf/Lookup/4363.0.55.001Chapter651512011-13 [Accessed 26 Oct. 2019].
+
+Röhrl, C. and Stangl, H., 2018. Cholesterol metabolism—physiological regulation and pathophysiological deregulation by the endoplasmic reticulum. Wiener Medizinische Wochenschrift, 168(11-12), pp.280-285.
+
+Aytekin, N, Godfri, B, & Cunliffe, A (2019) The hunger trap hypothesis: New horizons in understanding the control of food intake. Medical Hypotheses, Vol. 129, p.109247.
+
+Beaudoin, M, Robinson, L & Graham, T (2011) An Oral Lipid Challenge and Acute Intake of Caffeinated Coffee Additively Decrease Glucose Tolerance in Healthy Men. The Journal of Nutrition, Vol. 141, no. 4, pp. 574-581.
+
+Cvijanovic, N, Isaacs, NJ, Rayner, CK, Feinle-Bisset, C, Young, RL &amp; Little, TJ (2017) Lipid stimulation of fatty acid sensors in the human duodenum: relationship with gastrointestinal hormones, BMI and diet, International Journal of Obesity, Vol. 41, pp. 233-239.
+
+Da Silva, R, Kelly, Al Rajabi, A & Jacobs, R (2013) Novel insights on interactions between folate and lipid metabolism. BioFactors, Vol. 40, no. 3, pp. 277-283.
+
+Febrianti, ESZ, Asviandri, Farlina, L, Lestari, R, Cahyohadi, S, & Rini, EA (2012) Correlation between lipid profiles and body mass index of adolescents obesity in Padang, International Journal of Pediatric Endocrinology, pp. 87.
+
+Fruhbeck, G, Gomez-Ambrosi, J, Muruzabal, FJ, Burrell, MA (2001) The adipocyte: a model for integration of endocrine and metabolic signalling in energy metabolism regulation. American Journal of Physiology: Endocrinol and Metabolism, Vol. 280, pp. E827- E847.
+
+Guerci, B, Paul, J, Vergès, B, Drouin, P, Durlach, V & Hadjadj, S (2000) Lack of association between lipaemia and central adiposity in subjects with an atherogenic lipoprotein phenotype (ALP). International Journal of Obesity, Vol. 24, no. 9, pp. 468-478.
+
+Halade, GV, Jin, YF & Lindsey, ML (2012) Roles of saturated vs. polyunsaturated fat in heart failure survival: not all fats are created equal. Cardiovascular Research. Vol. 93. pp. 4-5.
+
+Harris, M (2013) The metabolic syndrome. Australian Family Physician, Vol. 42, no. 8, pp. 524-527.
+
+Hofmann, S, Perez-Tilve, D, Greer, T, Coburn, B, Grant, E, Basford, J, Tschop, M & Hui, D (2007) Defective Lipid Delivery Modulates Glucose Tolerance and Metabolic Response to Diet in Apolipoprotein E Deficient Mice. Diabetes, Vol. 57, no. 1, pp. 5-12. 
+
+James, PT, Leach, R, Kalamara, E & Shayeghi, M (2001) The worldwide obesity epidemic. Obesity Research, Vol. 9(5), pp. S228-S233. 
+
+Jacqmain, M., Doucet, E., Després, J., Bouchard, C. and Tremblay, A (2003) Calcium intake, body composition, and lipoprotein-lipid concentrations in adults. The American Journal of Clinical Nutrition, Vol. 77, no. 6, pp. 1448-1452.
+
+Joffe, YT, Merwe, LVD, Evans, J, Collins, M, Lambert, EV, September, AV & Goedecke, JH (2014) Interleukin-6 Gene Polymorphisms, Dietary Fat Intake, Obesity and Serum Lipid Concentrations in Black and White South African Women. Nutrients. Vol.6, pp. 2436-2465.
+
+Kaidar-Person, O, Person, B, Szomstein, S & Rosenthal, R (2008) Nutritional Deficiencies in Morbidly Obese Patients: A New Form of Malnutrition? Part B: Minerals. Obesity Surgery, Vol. 18, no. 8, pp. 1028-1034.
+
+Klop, B, Elte, JWF & Cabezas MC (2013) Dyslipidemia in Obesity: Mechanisms and Potential Targets. Nutrients. Vol. 5, pp. 1218-1240.
+
+
+
+
+
+
+
